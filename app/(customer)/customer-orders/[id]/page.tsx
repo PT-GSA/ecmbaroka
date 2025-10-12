@@ -33,13 +33,14 @@ interface Payment {
 }
 
 interface OrderPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function OrderDetailPage({ params }: OrderPageProps) {
   const supabase = await createClient()
+  const { id } = await params
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -74,7 +75,7 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
         created_at
       )
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('user_id', user.id)
     .single()
 
