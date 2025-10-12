@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { formatDate } from '@/lib/utils'
 import { ArrowLeft, Package, Save } from 'lucide-react'
 import ProductMediaManager from '@/components/admin/product-media-manager'
+import CoverSync from '@/components/admin/cover-sync'
 import { Trash2 } from 'lucide-react'
 import ProductUpdateSuccessDialog from '@/components/admin/product-update-success-dialog'
 
@@ -154,6 +155,8 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Media Produk</h2>
               <ProductMediaManager productId={product.id} />
+              {/* Preview cover aktif dan sinkronisasi nilai input URL Gambar */}
+              <CoverSync productId={product.id} initialCoverUrl={product.image_url ?? null} />
             </div>
 
             <form className="space-y-6" action={async (formData: FormData) => {
@@ -163,7 +166,8 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
               const description = String(formData.get('description') ?? '')
               const price = Number(formData.get('price') ?? product.price)
               const stock = Number(formData.get('stock') ?? product.stock)
-              const image_url = String(formData.get('image_url') ?? product.image_url ?? '')
+              const image_url_input = String(formData.get('image_url') ?? '').trim()
+              const original_image_url = String(formData.get('original_image_url') ?? '').trim()
               const is_active = formData.get('is_active') === 'on'
 
               // Build specs JSON from form fields, preserving existing values when input is empty
@@ -200,9 +204,16 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
                 }
               }
 
+              const updateData: Record<string, unknown> = { name, description, price, stock, is_active, specs }
+              // Hanya update image_url jika user mengubah kolom URL Gambar.
+              // Ini mencegah cover terbaru yang diset dari ProductMediaManager ditimpa kembali.
+              if (image_url_input !== original_image_url) {
+                updateData.image_url = image_url_input ? image_url_input : null
+              }
+
               const { error: updateError } = await supa
                 .from('products')
-                .update({ name, description, price, stock, image_url, is_active, specs })
+                .update(updateData)
                 .eq('id', id)
 
               if (updateError) {
@@ -216,28 +227,42 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
             }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nama Produk</Label>
-                  <Input id="name" name="name" defaultValue={product.name} />
+                  <Label htmlFor="name" className="text-base">Nama Produk</Label>
+                  <Input id="name" name="name" defaultValue={product.name} className="h-12" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="price">Harga</Label>
-                  <Input id="price" name="price" type="number" step="1" defaultValue={product.price} />
+                  <Label htmlFor="price" className="text-base">Harga</Label>
+                  <Input id="price" name="price" type="number" step="1" defaultValue={product.price} className="h-12" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stock">Stok</Label>
-                  <Input id="stock" name="stock" type="number" step="1" defaultValue={product.stock} />
+                  <Label htmlFor="stock" className="text-base">Stok</Label>
+                  <Input id="stock" name="stock" type="number" step="1" defaultValue={product.stock} className="h-12" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="image_url">URL Gambar</Label>
-                  <Input id="image_url" name="image_url" defaultValue={product.image_url ?? ''} />
+                  {/* Kolom URL Gambar disembunyikan secara default, dapat dibuka jika diperlukan */}
+                  <details>
+                    <summary className="cursor-pointer select-none text-sm text-primary hover:underline">Pengaturan Lanjutan: URL Gambar</summary>
+                    <div className="mt-3 space-y-2">
+                      <Label htmlFor="image_url" className="text-base">URL Gambar</Label>
+                      <Input id="image_url" name="image_url" defaultValue={product.image_url ?? ''} className="h-12" />
+                      {/* Hidden field untuk mendeteksi apakah kolom URL Gambar diubah */}
+                      <input type="hidden" name="original_image_url" value={product.image_url ?? ''} />
+                    </div>
+                  </details>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="description">Deskripsi</Label>
-                  <Input id="description" name="description" defaultValue={product.description ?? ''} />
+                  <Label htmlFor="description" className="text-base">Deskripsi</Label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    defaultValue={product.description ?? ''}
+                    rows={5}
+                    className="w-full rounded-md border border-input bg-background px-3 py-3 text-sm h-32 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
                 </div>
                 <div className="flex items-center gap-3 md:col-span-2">
                   <input id="is_active" name="is_active" type="checkbox" defaultChecked={product.is_active} />
-                  <Label htmlFor="is_active">Aktif</Label>
+                  <Label htmlFor="is_active" className="text-base">Aktif</Label>
                 </div>
               </div>
 
@@ -248,60 +273,60 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
                 <h3 className="text-md font-semibold">Edit Spesifikasi Produk</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="stock_status">Stok</Label>
-                    <Input id="stock_status" name="stock_status" placeholder="TERSEDIA" defaultValue={getSpecDefault('stock_status')} />
+                    <Label htmlFor="stock_status" className="text-base">Stok</Label>
+                    <Input id="stock_status" name="stock_status" placeholder="TERSEDIA" defaultValue={getSpecDefault('stock_status')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="brand">Merek</Label>
-                    <Input id="brand" name="brand" placeholder="Baroka" defaultValue={getSpecDefault('brand')} />
+                    <Label htmlFor="brand" className="text-base">Merek</Label>
+                    <Input id="brand" name="brand" placeholder="Baroka" defaultValue={getSpecDefault('brand')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="storage_condition">Kondisi Penyimpanan</Label>
-                    <Input id="storage_condition" name="storage_condition" placeholder="Suhu Ruangan" defaultValue={getSpecDefault('storage_condition')} />
+                    <Label htmlFor="storage_condition" className="text-base">Kondisi Penyimpanan</Label>
+                    <Input id="storage_condition" name="storage_condition" placeholder="Suhu Ruangan" defaultValue={getSpecDefault('storage_condition')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="flavor">Rasa</Label>
-                    <Input id="flavor" name="flavor" placeholder="Mawar" defaultValue={getSpecDefault('flavor')} />
+                    <Label htmlFor="flavor" className="text-base">Rasa</Label>
+                    <Input id="flavor" name="flavor" placeholder="Mawar" defaultValue={getSpecDefault('flavor')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="origin_country">Negara Asal</Label>
-                    <Input id="origin_country" name="origin_country" placeholder="Indonesia" defaultValue={getSpecDefault('origin_country')} />
+                    <Label htmlFor="origin_country" className="text-base">Negara Asal</Label>
+                    <Input id="origin_country" name="origin_country" placeholder="Indonesia" defaultValue={getSpecDefault('origin_country')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="shelf_life">Masa Penyimpanan</Label>
-                    <Input id="shelf_life" name="shelf_life" placeholder="12 Bulan" defaultValue={getSpecDefault('shelf_life')} />
+                    <Label htmlFor="shelf_life" className="text-base">Masa Penyimpanan</Label>
+                    <Input id="shelf_life" name="shelf_life" placeholder="12 Bulan" defaultValue={getSpecDefault('shelf_life')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="diet_menu">Menu Makanan Khusus</Label>
-                    <Input id="diet_menu" name="diet_menu" placeholder="Halal, Menu Sehat" defaultValue={getSpecDefault('diet_menu')} />
+                    <Label htmlFor="diet_menu" className="text-base">Menu Makanan Khusus</Label>
+                    <Input id="diet_menu" name="diet_menu" placeholder="Halal, Menu Sehat" defaultValue={getSpecDefault('diet_menu')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="qty_per_pack">Quantity per Pack</Label>
-                    <Input id="qty_per_pack" name="qty_per_pack" placeholder="1" defaultValue={getSpecDefault('qty_per_pack')} />
+                    <Label htmlFor="qty_per_pack" className="text-base">Quantity per Pack</Label>
+                    <Input id="qty_per_pack" name="qty_per_pack" placeholder="1" defaultValue={getSpecDefault('qty_per_pack')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="custom_product">Produk Custom</Label>
-                    <Input id="custom_product" name="custom_product" placeholder="Tidak" defaultValue={getSpecDefault('custom_product')} />
+                    <Label htmlFor="custom_product" className="text-base">Produk Custom</Label>
+                    <Input id="custom_product" name="custom_product" placeholder="Tidak" defaultValue={getSpecDefault('custom_product')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="expiry_date">Tanggal Kedaluwarsa</Label>
-                    <Input id="expiry_date" name="expiry_date" placeholder="20-02-2026" defaultValue={getSpecDefault('expiry_date')} />
+                    <Label htmlFor="expiry_date" className="text-base">Tanggal Kedaluwarsa</Label>
+                    <Input id="expiry_date" name="expiry_date" placeholder="20-02-2026" defaultValue={getSpecDefault('expiry_date')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="volume">Volume</Label>
-                    <Input id="volume" name="volume" placeholder="180ml" defaultValue={getSpecDefault('volume')} />
+                    <Label htmlFor="volume" className="text-base">Volume</Label>
+                    <Input id="volume" name="volume" placeholder="180ml" defaultValue={getSpecDefault('volume')} className="h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="units_per_pack">Jumlah Produk Dalam Kemasan</Label>
-                    <Input id="units_per_pack" name="units_per_pack" placeholder="24" defaultValue={getSpecDefault('units_per_pack')} />
+                    <Label htmlFor="units_per_pack" className="text-base">Jumlah Produk Dalam Kemasan</Label>
+                    <Input id="units_per_pack" name="units_per_pack" placeholder="24" defaultValue={getSpecDefault('units_per_pack')} className="h-12" />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="halal_cert_no">No. Sertifikasi (Halal)</Label>
-                    <Input id="halal_cert_no" name="halal_cert_no" placeholder="-" defaultValue={getSpecDefault('halal_cert_no')} />
+                    <Label htmlFor="halal_cert_no" className="text-base">No. Sertifikasi (Halal)</Label>
+                    <Input id="halal_cert_no" name="halal_cert_no" placeholder="-" defaultValue={getSpecDefault('halal_cert_no')} className="h-12" />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="shipped_from">Dikirim Dari</Label>
-                    <Input id="shipped_from" name="shipped_from" placeholder="KOTA BEKASI" defaultValue={getSpecDefault('shipped_from')} />
+                    <Label htmlFor="shipped_from" className="text-base">Dikirim Dari</Label>
+                    <Input id="shipped_from" name="shipped_from" placeholder="KOTA BEKASI" defaultValue={getSpecDefault('shipped_from')} className="h-12" />
                   </div>
                 </div>
               </div>

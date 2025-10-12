@@ -240,7 +240,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <div className="grid grid-cols-1 gap-3">
               <div className="flex items-center gap-3">
                 <Package className="h-5 w-5 text-primary" />
-                <span className="text-sm">Susu Steril langsung dari peternakan</span>
+                <span className="text-sm">Susu Steril Impor</span>
               </div>
               <div className="flex items-center gap-3">
                 <Truck className="h-5 w-5 text-primary" />

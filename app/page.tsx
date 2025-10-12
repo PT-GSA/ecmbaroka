@@ -32,12 +32,16 @@ export default async function HomePage() {
               alt: 'Produk Susu Steril Original',
             },
             {
-              src: '/rose.jpeg',
+              src: '/rose.jpg',
               alt: 'Produk Susu Steril Rasa Rose',
             },
             {
-              src: '/azwa.jpeg',
+              src: '/azwa.jpg',
               alt: 'Produk Susu Steril Rasa Azwa',
+            },
+            {
+              src: '/family-azwa.jpeg',
+              alt: 'Susu baroka family azwa',
             },
           ]}
           autoPlayInterval={5000}

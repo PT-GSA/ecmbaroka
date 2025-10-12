@@ -99,6 +99,10 @@ export default function ProductMediaManager({ productId }: { productId: string }
         .update({ image_url: null })
         .eq('id', productId)
       setCoverUrl(null)
+      // Broadcast perubahan cover menjadi null
+      try {
+        window.dispatchEvent(new CustomEvent('product-cover-updated', { detail: { productId, url: null } }))
+      } catch {}
     }
     await refreshList()
   }
@@ -113,6 +117,10 @@ export default function ProductMediaManager({ productId }: { productId: string }
       return
     }
     setCoverUrl(publicUrl)
+    // Broadcast perubahan cover
+    try {
+      window.dispatchEvent(new CustomEvent('product-cover-updated', { detail: { productId, url: publicUrl } }))
+    } catch {}
   }
 
   return (
