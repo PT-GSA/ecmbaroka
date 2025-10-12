@@ -32,7 +32,7 @@ export default function LoginPage() {
       if (result.profile?.role === 'admin') {
         setError('Silakan gunakan halaman login admin untuk akses admin.')
       } else {
-        router.push('/customer-products')
+        router.push('/products')
       }
       router.refresh()
     } else {
@@ -55,7 +55,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">Susu Baroka</h1>
-                  <p className="text-gray-600">Susu Segar Terpercaya</p>
+                  <p className="text-gray-600">Susu Steril Terpercaya</p>
                 </div>
               </div>
               
@@ -65,7 +65,7 @@ export default function LoginPage() {
               </h2>
               
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Masuk ke akun Anda untuk melanjutkan berbelanja susu segar berkualitas tinggi 
+                Masuk ke akun Anda untuk melanjutkan berbelanja Susu Steril berkualitas tinggi 
                 dari peternakan terpercaya.
               </p>
 

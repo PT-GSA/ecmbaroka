@@ -183,7 +183,7 @@ export default async function OrdersPage() {
             Anda belum memiliki pesanan. Mulai belanja sekarang!
           </p>
           <Button asChild>
-            <Link href="/customer-products">
+            <Link href="/products">
               Mulai Belanja
             </Link>
           </Button>

@@ -235,7 +235,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium">Order #SB001</p>
-                  <p className="text-sm text-gray-600">Susu Segar 1L - Rp 25.000</p>
+                  <p className="text-sm text-gray-600">Susu Steril 1L - Rp 25.000</p>
                 </div>
                 <Badge variant="secondary" className="bg-orange-100 text-orange-800">
                   Pending
@@ -280,7 +280,7 @@ export default function AdminDashboard() {
             <div className="flex items-center p-3 bg-white rounded-lg border border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-500 mr-3" />
               <div className="flex-1">
-                <p className="font-medium">Stok Susu Segar Menipis</p>
+                <p className="font-medium">Stok Susu Steril Menipis</p>
                 <p className="text-sm text-gray-600">Sisa 15 botol, segera restock</p>
               </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -42,8 +43,14 @@ export default function CustomerNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-primary">Susu Baroka</h1>
+            <Link href="/" className="flex-shrink-0 flex items-center">
+              <Image
+                src="/logo.svg"
+                alt="Susu Baroka"
+                width={140}
+                height={32}
+                priority
+              />
             </Link>
           </div>
 
@@ -52,7 +59,7 @@ export default function CustomerNavbar() {
             <Link href="/" className="text-gray-700 hover:text-primary transition-colors">
               Beranda
             </Link>
-            <Link href="/customer-products" className="text-gray-700 hover:text-primary transition-colors">
+            <Link href="/products" className="text-gray-700 hover:text-primary transition-colors">
               Produk
             </Link>
             {user && (
@@ -118,7 +125,7 @@ export default function CustomerNavbar() {
                 Beranda
               </Link>
               <Link
-                href="/customer-products"
+                href="/products"
                 className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >

@@ -59,7 +59,7 @@ export default function AdminOrdersPage() {
             quantity: 2,
             price_at_purchase: 25000,
             products: {
-              name: 'Susu Segar 1L',
+              name: 'Susu Steril 1L',
               price: 25000
             }
           },
@@ -123,7 +123,7 @@ export default function AdminOrdersPage() {
             quantity: 1,
             price_at_purchase: 25000,
             products: {
-              name: 'Susu Segar 1L',
+              name: 'Susu Steril 1L',
               price: 25000
             }
           },
@@ -155,7 +155,7 @@ export default function AdminOrdersPage() {
             quantity: 3,
             price_at_purchase: 25000,
             products: {
-              name: 'Susu Segar 1L',
+              name: 'Susu Steril 1L',
               price: 25000
             }
           },
@@ -196,7 +196,7 @@ export default function AdminOrdersPage() {
             quantity: 2,
             price_at_purchase: 25000,
             products: {
-              name: 'Susu Segar 1L',
+              name: 'Susu Steril 1L',
               price: 25000
             }
           },

@@ -21,7 +21,7 @@ interface ProductPreorderFormProps {
 }
 
 export default function ProductPreorderForm({ product }: ProductPreorderFormProps) {
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState(10)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -39,6 +39,12 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
       
       if (!user) {
         router.push('/login')
+        return
+      }
+
+      // Enforce minimum 10 cartons
+      if (quantity < 10) {
+        setError('Minimal order adalah 10 karton per produk')
         return
       }
 
@@ -84,6 +90,12 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
       
       if (!user) {
         router.push('/login')
+        return
+      }
+
+      // Enforce minimum 10 cartons
+      if (quantity < 10) {
+        setError('Minimal order adalah 10 karton per produk')
         return
       }
 
@@ -137,7 +149,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
           Preorder Sekarang
         </CardTitle>
         <CardDescription>
-          Pilih jumlah dan lanjutkan ke pembayaran
+          Website khusus preorder. Minimal 10 karton per produk.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -148,8 +160,8 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              disabled={quantity <= 1}
+              onClick={() => setQuantity(Math.max(10, quantity - 1))}
+              disabled={quantity <= 10}
             >
               <Minus className="h-4 w-4" />
             </Button>
@@ -157,8 +169,8 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
               id="quantity"
               type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Math.min(product.stock, parseInt(e.target.value) || 1)))}
-              min={1}
+              onChange={(e) => setQuantity(Math.max(10, Math.min(product.stock, parseInt(e.target.value) || 10)))}
+              min={10}
               max={product.stock}
               className="w-20 text-center"
             />
@@ -171,7 +183,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
               <Plus className="h-4 w-4" />
             </Button>
             <span className="text-sm text-gray-500">
-              dari {product.stock} tersedia
+              dari {product.stock} karton tersedia
             </span>
           </div>
         </div>
@@ -181,12 +193,12 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
         {/* Price Summary */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Harga per unit:</span>
+            <span>Harga per karton:</span>
             <span>{formatCurrency(product.price)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span>Jumlah:</span>
-            <span>{quantity} unit</span>
+            <span>{quantity} karton</span>
           </div>
           <Separator />
           <div className="flex justify-between font-semibold text-lg">

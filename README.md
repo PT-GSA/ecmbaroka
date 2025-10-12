@@ -1,6 +1,6 @@
 # Susu Baroka - Website Preorder Susu
 
-Website preorder susu segar dengan Next.js, Bun, dan Supabase. Fitur lengkap untuk customer dan admin dengan sistem pembayaran manual dan pengiriman manual.
+Website preorder Susu Steril dengan Next.js, Bun, dan Supabase. Fitur lengkap untuk customer dan admin dengan sistem pembayaran manual dan pengiriman manual.
 
 ## 🚀 Fitur Utama
 
@@ -228,4 +228,4 @@ MIT License - see LICENSE file for details
 
 ---
 
-**Susu Baroka** - Susu segar berkualitas tinggi untuk keluarga Indonesia 🇮🇩
+**Susu Baroka** - Susu Steril berkualitas tinggi untuk keluarga Indonesia 🇮🇩

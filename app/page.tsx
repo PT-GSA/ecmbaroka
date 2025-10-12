@@ -2,355 +2,197 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ShoppingCart, Truck, Shield, Heart, Star, Users, Clock, Award } from 'lucide-react'
+import { ShoppingCart, Truck, Shield, Heart, Star, Users } from 'lucide-react'
+import Image from 'next/image'
 import CustomerNavbar from '@/components/customer/navbar'
+import ProductCard from '@/components/customer/product-card'
+import { createClient } from '@/lib/supabase/server'
+import HeroCarousel from '@/components/customer/hero-carousel'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient()
+  const { data: products } = await supabase
+    .from('products')
+    .select('id, name, description, price, image_url, stock, is_active')
+    .eq('is_active', true)
+    .limit(8)
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-50">
       <CustomerNavbar />
-      
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <Badge variant="secondary" className="mb-4 bg-white/20 text-white border-white/30">
-                <Star className="w-4 h-4 mr-1" />
-                Produk Terpercaya
-              </Badge>
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                Susu Segar 
-                <span className="text-yellow-300">Baroka</span>
-              </h1>
-              <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-                Nikmati susu segar berkualitas tinggi langsung dari peternakan terpercaya. 
-                Preorder sekarang dan dapatkan pengalaman minum susu terbaik untuk keluarga Anda.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Button size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold" asChild>
-                  <Link href="/customer-products">
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    Belanja Sekarang
-                  </Link>
-                </Button>
-                <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600" asChild>
-                  <Link href="/customer-orders">Cek Pesanan</Link>
-                </Button>
-              </div>
-              <div className="flex items-center gap-6 text-sm text-blue-200">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>10K+ Pelanggan</span>
+
+      {/* Banner global preorder dihapus; ditampilkan per produk saja */}
+
+      {/* Hero dengan gambar full-width + auto carousel */}
+      <section className="relative">
+        <HeroCarousel
+          images={[
+            {
+              src: '/original.jpeg',
+              alt: 'Produk Susu Steril Original',
+            },
+            {
+              src: '/rose.jpeg',
+              alt: 'Produk Susu Steril Rasa Rose',
+            },
+            {
+              src: '/azwa.jpeg',
+              alt: 'Produk Susu Steril Rasa Azwa',
+            },
+          ]}
+          autoPlayInterval={5000}
+        >
+          <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8">
+            <div className="h-full grid lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-7 pt-16 lg:pt-24">
+                <Badge variant="outline" className="mb-4 text-white border-white/60 bg-white/10">
+                  <Star className="w-4 h-4 mr-1" /> Terpercaya oleh pelanggan
+                </Badge>
+                <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-6 drop-shadow-sm">
+                  Susu Steril Baroka
+                </h1>
+                <p className="text-lg text-white/90 mb-8 max-w-2xl">
+                  Preorder susu steril import berkualitas tinggi langsung dari peternakan. Pengalaman belanja elegan, aman, dan mudah.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button size="lg" className="bg-white text-neutral-900 hover:bg-white/90" asChild>
+                    <Link href="/products">
+                      <ShoppingCart className="mr-2 h-5 w-5" /> Belanja Sekarang
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="lg" className="border-white/70 text-white hover:bg-white/10" asChild>
+                    <Link href="/login">Daftar</Link>
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4" />
-                  <span>Sertifikat Halal</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>Pengiriman Cepat</span>
-                </div>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-                <div className="text-center">
-                  <div className="w-32 h-32 bg-white/20 rounded-full mx-auto mb-6 flex items-center justify-center">
-                    <Heart className="w-16 h-16 text-yellow-300" />
+                <div className="mt-8 flex items-center gap-6 text-sm text-white/90">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    <span>10K+ Pelanggan</span>
                   </div>
-                  <h3 className="text-2xl font-bold mb-4">Susu Segar Setiap Hari</h3>
-                  <p className="text-blue-100 mb-6">
-                    Dapatkan susu segar langsung dari peternakan dengan kualitas terjamin
-                  </p>
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-yellow-300">100%</div>
-                      <div className="text-sm text-blue-200">Alami</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-yellow-300">24h</div>
-                      <div className="text-sm text-blue-200">Segar</div>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    <span>Terjamin Halal</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4" />
+                    <span>Pengiriman Aman</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </HeroCarousel>
       </section>
 
-      {/* Categories Section */}
-      <section className="py-16 bg-white">
+      {/* Produk Unggulan */}
+      <section className="py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Kategori Produk
-            </h2>
-            <p className="text-lg text-gray-600">
-              Pilih jenis susu yang sesuai dengan kebutuhan keluarga Anda
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-blue-500">
-              <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
-                  <Heart className="h-8 w-8 text-blue-600" />
-                </div>
-                <CardTitle className="text-lg">Susu Segar</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <CardDescription>
-                  Susu murni langsung dari peternakan dengan kualitas terbaik
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-green-500">
-              <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
-                  <Shield className="h-8 w-8 text-green-600" />
-                </div>
-                <CardTitle className="text-lg">Susu Pasteurisasi</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <CardDescription>
-                  Susu yang telah diproses dengan teknologi pasteurisasi modern
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-purple-500">
-              <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
-                  <Award className="h-8 w-8 text-purple-600" />
-                </div>
-                <CardTitle className="text-lg">Susu Organik</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <CardDescription>
-                  Susu organik dari sapi yang dipelihara secara alami
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-orange-500">
-              <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-orange-200 transition-colors">
-                  <Star className="h-8 w-8 text-orange-600" />
-                </div>
-                <CardTitle className="text-lg">Susu Premium</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <CardDescription>
-                  Susu premium dengan kualitas dan rasa yang istimewa
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Mengapa Memilih Susu Baroka?
-            </h2>
-            <p className="text-lg text-gray-600">
-              Kami berkomitmen memberikan susu terbaik untuk keluarga Anda
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <Heart className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                <CardTitle className="text-lg">Segar & Berkualitas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Susu langsung dari peternakan dengan standar kualitas tertinggi
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <Truck className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-                <CardTitle className="text-lg">Pengiriman Aman</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Sistem pengiriman yang aman dan terpercaya ke seluruh Indonesia
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <Shield className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <CardTitle className="text-lg">Terjamin Halal</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Semua produk kami telah bersertifikat halal dan aman dikonsumsi
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <ShoppingCart className="h-12 w-12 text-purple-500 mx-auto mb-4" />
-                <CardTitle className="text-lg">Preorder Mudah</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Sistem preorder yang mudah dan praktis untuk kebutuhan harian
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Cara Kerja Preorder
-            </h2>
-            <p className="text-lg text-gray-600">
-              Proses sederhana untuk mendapatkan susu segar
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center group">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full w-20 h-20 flex items-center justify-center text-2xl font-bold mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                1
-              </div>
-              <h3 className="text-xl font-semibold mb-4">Pilih Produk</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Pilih jenis susu dan jumlah yang diinginkan dari katalog produk kami yang lengkap
-              </p>
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-semibold text-neutral-900">Produk Unggulan</h2>
+              <p className="text-neutral-600">Rekomendasi terbaik untuk Anda</p>
             </div>
-            
-            <div className="text-center group">
-              <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full w-20 h-20 flex items-center justify-center text-2xl font-bold mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                2
-              </div>
-              <h3 className="text-xl font-semibold mb-4">Bayar & Upload Bukti</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Lakukan transfer ke rekening yang tersedia dan upload bukti pembayaran dengan mudah
-              </p>
-            </div>
-            
-            <div className="text-center group">
-              <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full w-20 h-20 flex items-center justify-center text-2xl font-bold mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                3
-              </div>
-              <h3 className="text-xl font-semibold mb-4">Tunggu Pengiriman</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Tim kami akan memproses pesanan dan mengirimkan susu segar ke alamat Anda
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-700 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold mb-6">
-            Siap Memulai Preorder?
-          </h2>
-          <p className="text-xl mb-10 opacity-90 max-w-3xl mx-auto leading-relaxed">
-            Bergabunglah dengan ribuan pelanggan yang telah merasakan kualitas susu Baroka. 
-            Dapatkan susu segar terbaik untuk keluarga Anda hari ini juga!
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold px-8 py-3" asChild>
-              <Link href="/customer-products">
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Mulai Preorder Sekarang
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-3" asChild>
-              <Link href="/login">Daftar Sekarang</Link>
+            <Button variant="outline" className="border-neutral-300 text-neutral-800 hover:bg-neutral-100" asChild>
+              <Link href="/products">Lihat Semua</Link>
             </Button>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products && products.length > 0 ? (
+              products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            ) : (
+              <div className="col-span-full">
+                <Card>
+                  <CardContent className="p-6 text-center text-neutral-600">Tidak ada produk aktif saat ini.</CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      {/* Kategori ringkas */}
+      <section className="py-12 border-t border-neutral-200 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-2xl font-bold text-yellow-400 mb-4">Susu Baroka</h3>
-              <p className="text-gray-300 mb-4">
-                Menyediakan susu segar berkualitas tinggi langsung dari peternakan terpercaya untuk keluarga Indonesia.
-              </p>
-              <div className="flex space-x-4">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Heart className="w-4 h-4" />
-                </div>
-                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                  <Shield className="w-4 h-4" />
-                </div>
-                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                  <Award className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Produk</h4>
-              <ul className="space-y-2 text-gray-300">
-                <li><Link href="/customer-products" className="hover:text-yellow-400 transition-colors">Susu Segar</Link></li>
-                <li><Link href="/customer-products" className="hover:text-yellow-400 transition-colors">Susu Pasteurisasi</Link></li>
-                <li><Link href="/customer-products" className="hover:text-yellow-400 transition-colors">Susu Organik</Link></li>
-                <li><Link href="/customer-products" className="hover:text-yellow-400 transition-colors">Susu Premium</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Layanan</h4>
-              <ul className="space-y-2 text-gray-300">
-                <li><Link href="/customer-orders" className="hover:text-yellow-400 transition-colors">Cek Pesanan</Link></li>
-                <li><Link href="/cart" className="hover:text-yellow-400 transition-colors">Keranjang</Link></li>
-                <li><span className="hover:text-yellow-400 transition-colors cursor-pointer">Bantuan</span></li>
-                <li><span className="hover:text-yellow-400 transition-colors cursor-pointer">FAQ</span></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Kontak</h4>
-              <ul className="space-y-2 text-gray-300">
-                <li className="flex items-center gap-2">
-                  <Truck className="w-4 h-4" />
-                  <span>Pengiriman Seluruh Indonesia</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>Senin - Minggu: 08:00 - 20:00</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  <span>Sertifikat Halal</span>
-                </li>
-              </ul>
-            </div>
+          <div className="text-center mb-8">
+            <h3 className="text-xl font-semibold text-neutral-900">Jelajahi Kategori</h3>
+            <p className="text-neutral-600">Temukan susu sesuai kebutuhan Anda</p>
           </div>
-          
-          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Susu Baroka. Semua hak dilindungi undang-undang.</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Susu Steril</Badge>
+            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Pasteurisasi</Badge>
+            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Organik</Badge>
+            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Premium</Badge>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust strip */}
+      <section className="py-12 bg-neutral-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <Card className="border-neutral-200">
+              <CardHeader className="text-center">
+                <Heart className="h-10 w-10 text-neutral-800 mx-auto mb-2" />
+                <CardTitle className="text-base">Segar & Berkualitas</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <CardDescription>Langsung dari peternakan terpercaya</CardDescription>
+              </CardContent>
+            </Card>
+            <Card className="border-neutral-200">
+              <CardHeader className="text-center">
+                <Truck className="h-10 w-10 text-neutral-800 mx-auto mb-2" />
+                <CardTitle className="text-base">Pengiriman Aman</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <CardDescription>Jangkauan luas, tepat waktu</CardDescription>
+              </CardContent>
+            </Card>
+            <Card className="border-neutral-200">
+              <CardHeader className="text-center">
+                <Shield className="h-10 w-10 text-neutral-800 mx-auto mb-2" />
+                <CardTitle className="text-base">Terjamin Halal</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <CardDescription>Bersertifikat dan aman dikonsumsi</CardDescription>
+              </CardContent>
+            </Card>
+            <Card className="border-neutral-200">
+              <CardHeader className="text-center">
+                <ShoppingCart className="h-10 w-10 text-neutral-800 mx-auto mb-2" />
+                <CardTitle className="text-base">Preorder Mudah</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <CardDescription>Proses elegan dan cepat</CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA sederhana */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-semibold text-neutral-900 mb-4">Siap Preorder?</h2>
+          <p className="text-neutral-600 mb-8">Dapatkan Susu Steril terbaik untuk keluarga Anda.</p>
+          <Button size="lg" className="bg-neutral-900 hover:bg-neutral-800 text-white px-8" asChild>
+            <Link href="/products">
+              <ShoppingCart className="mr-2 h-5 w-5" /> Mulai Belanja
+            </Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* Footer minimal */}
+      <footer className="border-t border-neutral-200 py-10 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Image src="/logo.svg" alt="Susu Baroka" width={140} height={32} />
+            </div>
+            <div className="text-neutral-600">&copy; 2025 Susu Baroka. Semua hak dilindungi.</div>
           </div>
         </div>
       </footer>

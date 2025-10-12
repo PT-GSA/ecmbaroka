@@ -26,7 +26,7 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Produk', href: '/customer-products', icon: Package },
+  { name: 'Produk', href: '/products', icon: Package },
   { name: 'Pesanan Saya', href: '/customer-orders', icon: ShoppingCart },
   { name: 'Keranjang', href: '/cart', icon: ShoppingCart },
   { name: 'Notifikasi', href: '/notifications', icon: Bell, badge: 3 },

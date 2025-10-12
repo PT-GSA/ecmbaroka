@@ -22,29 +22,34 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Card className="group hover:shadow-lg transition-shadow">
       <CardHeader className="p-0">
-        <div className="relative aspect-square overflow-hidden rounded-t-lg">
-          {product.image_url ? (
-            <Image
-              src={product.image_url}
-              alt={product.name}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-400">No Image</span>
-            </div>
-          )}
-          {!product.is_active && (
-            <Badge variant="destructive" className="absolute top-2 right-2">
-              Tidak Tersedia
-            </Badge>
-          )}
-        </div>
+        <Link href={`/products/${product.id}`} className="block">
+          <div className="relative aspect-square overflow-hidden rounded-t-lg">
+            {product.image_url ? (
+              <Image
+                src={product.image_url}
+                alt={product.name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 25vw"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                <span className="text-gray-400">No Image</span>
+              </div>
+            )}
+            {!product.is_active && (
+              <Badge variant="destructive" className="absolute top-2 right-2">
+                Tidak Tersedia
+              </Badge>
+            )}
+          </div>
+        </Link>
       </CardHeader>
       <CardContent className="p-4">
         <CardTitle className="text-lg mb-2 line-clamp-2">
-          {product.name}
+          <Link href={`/products/${product.id}`} className="hover:underline">
+            {product.name}
+          </Link>
         </CardTitle>
         {product.description && (
           <CardDescription className="mb-3 line-clamp-2">
@@ -64,7 +69,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           disabled={!product.is_active || product.stock === 0}
           asChild
         >
-          <Link href={`/customer-products/${product.id}`}>
+          <Link href={`/products/${product.id}`}>
             <ShoppingCart className="mr-2 h-4 w-4" />
             {!product.is_active || product.stock === 0 ? 'Tidak Tersedia' : 'Preorder'}
           </Link>

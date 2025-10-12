@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected customer routes
-  if (request.nextUrl.pathname.startsWith('/customer-products') || 
+  if (
       request.nextUrl.pathname.startsWith('/customer-orders') ||
       request.nextUrl.pathname.startsWith('/cart') ||
       request.nextUrl.pathname.startsWith('/checkout') ||

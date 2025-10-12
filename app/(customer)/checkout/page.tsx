@@ -90,6 +90,14 @@ function CheckoutContent() {
     if (!order) return
 
     try {
+      // Validate minimum 10 cartons per item before submit
+      const invalidItem = order.order_items.find((item) => item.quantity < 10)
+      if (invalidItem) {
+        setError('Minimal order adalah 10 karton per produk. Mohon sesuaikan jumlah di keranjang sebelum checkout.')
+        setLoading(false)
+        return
+      }
+
       // Update order with shipping details
       const { error: updateError } = await supabase
         .from('orders')
@@ -212,7 +220,7 @@ function CheckoutContent() {
                     <div>
                       <p className="font-medium">{item.products.name}</p>
                       <p className="text-sm text-gray-600">
-                        {item.quantity} x {formatCurrency(item.price_at_purchase)}
+                        {item.quantity} karton x {formatCurrency(item.price_at_purchase)} per karton
                       </p>
                     </div>
                     <p className="font-semibold">

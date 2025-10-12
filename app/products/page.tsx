@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import ProductCard from '@/components/customer/product-card'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Megaphone } from 'lucide-react'
 
 export default async function ProductsPage() {
   const supabase = await createClient()
@@ -35,12 +37,19 @@ export default async function ProductsPage() {
 
     return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Banner global preorder */}
+      <div className="mb-6">
+        <Alert className="bg-yellow-50 border-yellow-200 text-yellow-900">
+          <Megaphone className="h-4 w-4" />
+          <AlertDescription>Khusus Preorder, minimal 10 karton per produk</AlertDescription>
+        </Alert>
+      </div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
           Produk Susu Baroka
         </h1>
         <p className="text-lg text-gray-600 mb-4">
-          Pilih susu segar berkualitas tinggi untuk keluarga Anda
+          Pilih Susu Steril berkualitas tinggi untuk keluarga Anda
         </p>
         <Badge variant="outline" className="text-sm">
           {products?.length || 0} produk tersedia

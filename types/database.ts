@@ -11,6 +11,9 @@ export interface Database {
           stock: number
           is_active: boolean
           created_at: string
+          sku: string | null
+          updated_at: string | null
+          specs: Record<string, unknown> | null
         }
         Insert: {
           id?: string
@@ -21,6 +24,9 @@ export interface Database {
           stock: number
           is_active?: boolean
           created_at?: string
+          sku?: string | null
+          updated_at?: string | null
+          specs?: Record<string, unknown> | null
         }
         Update: {
           id?: string
@@ -31,6 +37,9 @@ export interface Database {
           stock?: number
           is_active?: boolean
           created_at?: string
+          sku?: string | null
+          updated_at?: string | null
+          specs?: Record<string, unknown> | null
         }
       }
       orders: {

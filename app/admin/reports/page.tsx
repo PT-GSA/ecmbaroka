@@ -98,7 +98,7 @@ export default function AdminReports() {
 
     // Product data
     const products: ProductData[] = [
-      { id: 'P001', name: 'Susu Segar 1L', sales: 45, revenue: 1125000, quantity: 45 },
+      { id: 'P001', name: 'Susu Steril 1L', sales: 45, revenue: 1125000, quantity: 45 },
       { id: 'P002', name: 'Susu Pasteurisasi 500ml', sales: 38, revenue: 570000, quantity: 38 },
       { id: 'P003', name: 'Susu Organik 1L', sales: 32, revenue: 1120000, quantity: 32 },
       { id: 'P004', name: 'Susu Premium 1L', sales: 28, revenue: 980000, quantity: 28 },

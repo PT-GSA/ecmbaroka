@@ -77,7 +77,7 @@ export default function InvoicePage() {
           quantity: 2,
           price_at_purchase: 25000,
           products: {
-            name: 'Susu Segar 1L',
+            name: 'Susu Steril 1L',
             image_url: null
           }
         },
@@ -293,7 +293,7 @@ Terima kasih!`
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{mockInvoiceData.storeName}</h1>
-              <p className="text-gray-600">Susu Segar Berkualitas Tinggi</p>
+              <p className="text-gray-600">Susu Steril Berkualitas Tinggi</p>
             </div>
           </div>
           <div className="text-right">
@@ -425,7 +425,7 @@ Terima kasih!`
         <div className="border-t border-gray-200 pt-6 mt-8">
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">
-              Terima kasih telah mempercayai Susu Baroka untuk kebutuhan susu segar keluarga Anda.
+              Terima kasih telah mempercayai Susu Baroka untuk kebutuhan Susu Steril keluarga Anda.
             </p>
             <p className="text-xs text-gray-500">
               Invoice ini dibuat secara otomatis. Untuk pertanyaan atau bantuan, silakan hubungi customer service kami.

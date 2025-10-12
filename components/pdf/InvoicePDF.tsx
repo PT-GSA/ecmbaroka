@@ -140,7 +140,7 @@ export default function InvoicePDF({ order, store, subtotal, tax, shipping, tota
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>{store.storeName}</Text>
-            <Text style={styles.subtitle}>Susu Segar Berkualitas Tinggi</Text>
+            <Text style={styles.subtitle}>Susu Steril Berkualitas Tinggi</Text>
           </View>
           <View>
             <Text style={{ fontSize: 18, fontWeight: 700, color: '#2563EB' }}>INVOICE</Text>

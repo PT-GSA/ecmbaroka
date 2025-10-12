@@ -22,6 +22,7 @@ interface CartItem {
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
@@ -32,13 +33,16 @@ export default function CartPage() {
   }, [])
 
   const updateQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
+    // Enforce minimum 10 cartons per item
+    const clamped = Math.max(10, newQuantity)
+
+    if (clamped <= 0) {
       removeItem(productId)
       return
     }
 
     const updatedCart = cartItems.map(item =>
-      item.productId === productId ? { ...item, quantity: newQuantity } : item
+      item.productId === productId ? { ...item, quantity: clamped } : item
     )
     setCartItems(updatedCart)
     localStorage.setItem('cart', JSON.stringify(updatedCart))
@@ -59,6 +63,7 @@ export default function CartPage() {
 
   const handleCheckout = async () => {
     setLoading(true)
+    setError('')
 
     try {
       // Check if user is authenticated
@@ -66,6 +71,14 @@ export default function CartPage() {
       
       if (!user) {
         router.push('/login')
+        return
+      }
+
+      // Validate cart items meet minimum 10 cartons
+      const hasInvalidItem = cartItems.some(item => item.quantity < 10)
+      if (hasInvalidItem) {
+        setError('Minimal order adalah 10 karton per produk. Mohon sesuaikan kuantitas.')
+        setLoading(false)
         return
       }
 
@@ -128,7 +141,7 @@ export default function CartPage() {
             Belum ada produk di keranjang Anda
           </p>
           <Button asChild>
-            <Link href="/customer-products">
+            <Link href="/products">
               Mulai Belanja
             </Link>
           </Button>
@@ -141,7 +154,7 @@ export default function CartPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
         <Button variant="ghost" asChild>
-          <Link href="/customer-products" className="flex items-center">
+          <Link href="/products" className="flex items-center">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Kembali ke Produk
           </Link>
@@ -154,6 +167,11 @@ export default function CartPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-6">
             Keranjang Belanja
           </h1>
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+              {error}
+            </div>
+          )}
           
           {cartItems.map((item) => (
             <Card key={item.productId}>
@@ -177,7 +195,7 @@ export default function CartPage() {
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">{item.name}</h3>
                     <p className="text-sm text-gray-600">
-                      {formatCurrency(item.price)} per unit
+                      {formatCurrency(item.price)} per karton
                     </p>
                   </div>
                   
@@ -186,6 +204,7 @@ export default function CartPage() {
                       variant="outline"
                       size="icon"
                       onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                      disabled={item.quantity <= 10}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -228,7 +247,7 @@ export default function CartPage() {
               <div className="space-y-2">
                 {cartItems.map((item) => (
                   <div key={item.productId} className="flex justify-between text-sm">
-                    <span>{item.name} x {item.quantity}</span>
+                    <span>{item.name} x {item.quantity} karton</span>
                     <span>{formatCurrency(item.price * item.quantity)}</span>
                   </div>
                 ))}
@@ -250,7 +269,7 @@ export default function CartPage() {
                   {loading ? 'Memproses...' : 'Lanjut ke Checkout'}
                 </Button>
                 <Button variant="outline" className="w-full" asChild>
-                  <Link href="/customer-products">
+                  <Link href="/products">
                     Lanjut Belanja
                   </Link>
                 </Button>

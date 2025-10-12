@@ -316,8 +316,8 @@ CREATE TRIGGER on_auth_user_created
 
 -- Insert sample products
 INSERT INTO products (name, description, price, stock, is_active) VALUES 
-  ('Susu Murni 1 Liter', 'Susu segar langsung dari peternakan, tanpa pengawet', 25000, 100, true),
-  ('Susu Murni 500ml', 'Susu segar dalam kemasan praktis 500ml', 15000, 150, true),
+  ('Susu Murni 1 Liter', 'Susu Steril langsung dari peternakan, tanpa pengawet', 25000, 100, true),
+  ('Susu Murni 500ml', 'Susu Steril dalam kemasan praktis 500ml', 15000, 150, true),
   ('Susu Pasteurisasi 1 Liter', 'Susu yang telah dipasteurisasi untuk keamanan', 30000, 80, true),
   ('Susu Pasteurisasi 500ml', 'Susu pasteurisasi dalam kemasan praktis', 18000, 120, true)
 ON CONFLICT DO NOTHING;
