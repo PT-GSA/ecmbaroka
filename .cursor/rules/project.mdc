@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+Buat code yang robust, type-safe, dan mengikuti React best practices!
+selalu gunakan bahasa indonesia
+Cek Problems
+Jangan gunakan ANY di typescript
+Cek eslint
+jangan build aplikasi otomatis
+Selau gunakan BUN
+---

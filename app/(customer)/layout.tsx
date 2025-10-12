@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import CustomerNavbar from '@/components/customer/navbar'
+import CustomerSidebar from '@/components/customer/sidebar'
 
 export const metadata: Metadata = {
   title: 'Susu Baroka - Preorder Susu Segar',
@@ -13,10 +13,14 @@ export default function CustomerLayout({
 }) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <CustomerNavbar />
-      <main className="flex-1">
-        {children}
-      </main>
+      <div className="flex">
+        <CustomerSidebar />
+        <main className="flex-1 lg:ml-12 xl:ml-56 transition-all duration-300">
+          <div className="p-4">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

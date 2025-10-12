@@ -33,8 +33,13 @@ export async function middleware(request: NextRequest) {
 
   // Protected admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
+    // Skip redirect for admin login page
+    if (request.nextUrl.pathname === '/admin-auth/login') {
+      return supabaseResponse
+    }
+    
     if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      return NextResponse.redirect(new URL('/admin-auth/login', request.url))
     }
 
     // Check if user is admin

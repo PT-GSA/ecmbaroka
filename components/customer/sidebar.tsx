@@ -9,14 +9,13 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { 
-  LayoutDashboard, 
-  Package, 
-  ShoppingCart, 
-  CreditCard, 
-  Users,
-  BarChart3,
-  Settings,
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Bell,
+  History,
+  User,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -26,16 +25,16 @@ import {
 } from 'lucide-react'
 
 const navigation = [
-  { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-  { name: 'Produk', href: '/admin/products', icon: Package },
-  { name: 'Pesanan', href: '/admin/orders', icon: ShoppingCart, badge: 5 },
-  { name: 'Pembayaran', href: '/admin/payments', icon: CreditCard, badge: 2 },
-  { name: 'Pelanggan', href: '/admin/customers', icon: Users },
-  { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
-  { name: 'Pengaturan', href: '/admin/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Produk', href: '/customer-products', icon: Package },
+  { name: 'Pesanan Saya', href: '/customer-orders', icon: ShoppingCart },
+  { name: 'Keranjang', href: '/cart', icon: ShoppingCart },
+  { name: 'Notifikasi', href: '/notifications', icon: Bell, badge: 3 },
+  { name: 'Riwayat Transaksi', href: '/transaction-history', icon: History },
+  { name: 'Profile', href: '/profile', icon: User },
 ]
 
-export default function AdminSidebar() {
+export default function CustomerSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
@@ -71,7 +70,7 @@ export default function AdminSidebar() {
   }
 
   const getInitials = (email?: string) => {
-    return email?.split('@')[0]?.substring(0, 2).toUpperCase() || 'A'
+    return email?.split('@')[0]?.substring(0, 2).toUpperCase() || 'U'
   }
 
   return (
@@ -110,7 +109,7 @@ export default function AdminSidebar() {
                 <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
                   <Heart className="w-5 h-5 text-white" />
                 </div>
-                <h1 className="text-lg font-bold text-white">Admin Panel</h1>
+                <h1 className="text-lg font-bold text-white">Susu Baroka</h1>
               </div>
             )}
             {collapsed && (
@@ -136,7 +135,7 @@ export default function AdminSidebar() {
                 collapsed ? "justify-center" : "space-x-3"
               )}>
                 <Avatar className="w-10 h-10">
-                  <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold">
+                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-green-500 text-white font-semibold">
                     {getInitials(user.email)}
                   </AvatarFallback>
                 </Avatar>
@@ -145,7 +144,7 @@ export default function AdminSidebar() {
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {user.email?.split('@')[0]}
                     </p>
-                    <p className="text-xs text-gray-500">Administrator</p>
+                    <p className="text-xs text-gray-500">Customer</p>
                   </div>
                 )}
               </div>
