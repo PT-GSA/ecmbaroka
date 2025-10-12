@@ -50,7 +50,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected customer routes
-  if (request.nextUrl.pathname.startsWith('/customer') || 
+  if (request.nextUrl.pathname.startsWith('/customer-products') || 
+      request.nextUrl.pathname.startsWith('/customer-orders') ||
       request.nextUrl.pathname.startsWith('/cart') ||
       request.nextUrl.pathname.startsWith('/checkout') ||
       request.nextUrl.pathname.startsWith('/orders')) {
@@ -59,18 +60,24 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+
   // Redirect authenticated users away from auth pages
   if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    try {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
 
-    if (profile?.role === 'admin') {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
-    } else {
-      return NextResponse.redirect(new URL('/', request.url))
+      if (profile?.role === 'admin') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+      } else {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
+    } catch {
+      // If profile doesn't exist yet, allow access to auth pages
+      // This can happen during signup process
     }
   }
 

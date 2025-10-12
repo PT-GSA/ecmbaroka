@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -10,7 +10,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { Package, Plus, Edit, Eye } from 'lucide-react'
 
 export default async function AdminProductsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()

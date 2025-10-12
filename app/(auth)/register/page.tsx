@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { signupUser } from '@/lib/auth-helpers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,48 +17,26 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const supabase = createClient()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    try {
-      // Register user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-      })
+    const result = await signupUser({
+      email,
+      password,
+      fullName,
+      phone,
+    })
 
-      if (authError) {
-        setError(authError.message)
-        return
-      }
-
-      if (authData.user) {
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert({
-            id: authData.user.id,
-            full_name: fullName,
-            phone,
-            role: 'customer',
-          })
-
-        if (profileError) {
-          setError('Gagal membuat profil pengguna')
-          return
-        }
-
-        router.push('/login?message=Akun berhasil dibuat, silakan login')
-      }
-    } catch (err) {
-      setError('Terjadi kesalahan saat mendaftar')
-    } finally {
-      setLoading(false)
+    if (result.success) {
+      router.push('/login?message=Akun berhasil dibuat, silakan login')
+    } else {
+      setError(result.error || 'Gagal mendaftar')
     }
+
+    setLoading(false)
   }
 
   return (

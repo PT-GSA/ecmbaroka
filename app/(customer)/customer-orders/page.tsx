@@ -8,8 +8,17 @@ import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Package, Calendar, MapPin, Phone } from 'lucide-react'
 
+interface OrderItem {
+  id: string
+  quantity: number
+  price_at_purchase: number
+  products: {
+    name: string
+  }
+}
+
 export default async function OrdersPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -107,7 +116,7 @@ export default async function OrdersPage() {
                     Produk
                   </h4>
                   <div className="space-y-1">
-                    {order.order_items.map((item) => (
+                    {order.order_items.map((item: OrderItem) => (
                       <div key={item.id} className="flex justify-between text-sm">
                         <span>{item.products.name} x {item.quantity}</span>
                         <span>{formatCurrency(item.price_at_purchase * item.quantity)}</span>

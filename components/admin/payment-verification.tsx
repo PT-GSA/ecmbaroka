@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { CheckCircle, XCircle, Eye, Calendar, CreditCard } from 'lucide-react'
+import { CheckCircle, XCircle, CreditCard } from 'lucide-react'
 
 interface Payment {
   id: string
@@ -27,10 +27,9 @@ interface Payment {
 interface PaymentVerificationProps {
   payments: Payment[]
   orderId: string
-  orderStatus: string
 }
 
-export default function PaymentVerification({ payments, orderId, orderStatus }: PaymentVerificationProps) {
+export default function PaymentVerification({ payments, orderId }: PaymentVerificationProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -80,7 +79,7 @@ export default function PaymentVerification({ payments, orderId, orderStatus }: 
         router.refresh()
       }, 2000)
 
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan saat memverifikasi pembayaran')
     } finally {
       setLoading(null)
@@ -137,19 +136,20 @@ export default function PaymentVerification({ payments, orderId, orderStatus }: 
                 </div>
               </div>
               
-              {payment.proof_image_url && (
-                <div className="mt-4">
-                  <span className="text-gray-600 text-sm">Bukti Transfer:</span>
-                  <div className="mt-2">
-                    <img 
-                      src={payment.proof_image_url} 
-                      alt="Bukti Transfer"
-                      className="max-w-full h-auto rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => window.open(payment.proof_image_url!, '_blank')}
-                    />
-                  </div>
-                </div>
-              )}
+                      {payment.proof_image_url && (
+                        <div className="mt-4">
+                          <span className="text-gray-600 text-sm">Bukti Transfer:</span>
+                          <div className="mt-2">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img 
+                              src={payment.proof_image_url} 
+                              alt="Bukti Transfer"
+                              className="max-w-full h-auto rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => window.open(payment.proof_image_url!, '_blank')}
+                            />
+                          </div>
+                        </div>
+                      )}
               
               {payment.admin_notes && (
                 <div className="mt-3">

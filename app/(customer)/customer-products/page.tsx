@@ -3,30 +3,37 @@ import ProductCard from '@/components/customer/product-card'
 import { Badge } from '@/components/ui/badge'
 
 export default async function ProductsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   
-  const { data: products, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
+  try {
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
 
-  if (error) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">
-            Terjadi Kesalahan
-          </h1>
-          <p className="text-gray-600">
-            Gagal memuat daftar produk. Silakan coba lagi nanti.
-          </p>
+    if (error) {
+      console.error('Products fetch error:', error)
+      return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">
+              Terjadi Kesalahan
+            </h1>
+            <p className="text-gray-600 mb-4">
+              Gagal memuat daftar produk. Silakan coba lagi nanti.
+            </p>
+            <p className="text-sm text-gray-500">
+              Error: {error.message}
+            </p>
+          </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
 
-  return (
+    console.log('Products loaded:', products?.length || 0)
+
+    return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
@@ -58,4 +65,23 @@ export default async function ProductsPage() {
       )}
     </div>
   )
+
+  } catch (error) {
+    console.error('Products page error:', error)
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            Terjadi Kesalahan
+          </h1>
+          <p className="text-gray-600 mb-4">
+            Gagal memuat halaman produk. Silakan coba lagi nanti.
+          </p>
+          <p className="text-sm text-gray-500">
+            Error: {error instanceof Error ? error.message : 'Unknown error'}
+          </p>
+        </div>
+      </div>
+    )
+  }
 }

@@ -52,17 +52,13 @@ export default function OrderStatusUpdate({ orderId, currentStatus }: OrderStatu
         router.refresh()
       }, 2000)
 
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan saat memperbarui status')
     } finally {
       setLoading(false)
     }
   }
 
-  const getCurrentStatusIndex = () => {
-    const statusOrder = ['pending', 'paid', 'verified', 'processing', 'shipped', 'completed', 'cancelled']
-    return statusOrder.indexOf(currentStatus)
-  }
 
   const canUpdateTo = (status: string) => {
     const statusOrder = ['pending', 'paid', 'verified', 'processing', 'shipped', 'completed', 'cancelled']

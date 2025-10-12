@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { ShoppingCart, User, LogOut, Menu, X } from 'lucide-react'
+import { ShoppingCart, LogOut, Menu, X } from 'lucide-react'
 
 export default function CustomerNavbar() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()

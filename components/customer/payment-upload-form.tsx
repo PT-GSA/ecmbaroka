@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatCurrency } from '@/lib/utils'
-import { Upload, Calendar } from 'lucide-react'
+import { Upload } from 'lucide-react'
 
 interface PaymentUploadFormProps {
   orderId: string
@@ -63,7 +62,7 @@ export default function PaymentUploadForm({ orderId }: PaymentUploadFormProps) {
       const fileExt = proofFile.name.split('.').pop()
       const fileName = `${orderId}-${Date.now()}.${fileExt}`
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
         .upload(fileName, proofFile)
 
@@ -113,7 +112,7 @@ export default function PaymentUploadForm({ orderId }: PaymentUploadFormProps) {
         router.refresh()
       }, 2000)
 
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan saat mengupload bukti transfer')
     } finally {
       setLoading(false)

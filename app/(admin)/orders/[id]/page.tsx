@@ -8,9 +8,19 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { ArrowLeft, Package, Calendar, MapPin, Phone, CreditCard, CheckCircle, XCircle } from 'lucide-react'
+import { ArrowLeft, Package, Calendar, MapPin, Phone } from 'lucide-react'
 import OrderStatusUpdate from '@/components/admin/order-status-update'
 import PaymentVerification from '@/components/admin/payment-verification'
+
+interface OrderItem {
+  id: string
+  quantity: number
+  price_at_purchase: number
+  products: {
+    name: string
+    image_url: string | null
+  }
+}
 
 interface OrderPageProps {
   params: {
@@ -19,7 +29,7 @@ interface OrderPageProps {
 }
 
 export default async function AdminOrderDetailPage({ params }: OrderPageProps) {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -91,16 +101,6 @@ export default async function AdminOrderDetailPage({ params }: OrderPageProps) {
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
-  const getPaymentStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { variant: 'outline' as const, label: 'Menunggu Verifikasi' },
-      verified: { variant: 'success' as const, label: 'Terverifikasi' },
-      rejected: { variant: 'destructive' as const, label: 'Ditolak' },
-    }
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
-    return <Badge variant={config.variant}>{config.label}</Badge>
-  }
 
   return (
     <div className="space-y-6">
@@ -161,7 +161,7 @@ export default async function AdminOrderDetailPage({ params }: OrderPageProps) {
                   Produk
                 </h4>
                 <div className="space-y-3">
-                  {order.order_items.map((item) => (
+                  {order.order_items.map((item: OrderItem) => (
                     <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
                         {item.products.image_url ? (
@@ -239,7 +239,6 @@ export default async function AdminOrderDetailPage({ params }: OrderPageProps) {
             <PaymentVerification 
               payments={order.payments} 
               orderId={order.id}
-              orderStatus={order.status}
             />
           )}
 

@@ -46,7 +46,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
       const existingCart = JSON.parse(localStorage.getItem('cart') || '[]')
       
       // Check if product already exists in cart
-      const existingItemIndex = existingCart.findIndex((item: any) => item.productId === product.id)
+      const existingItemIndex = existingCart.findIndex((item: { productId: string }) => item.productId === product.id)
       
       if (existingItemIndex >= 0) {
         // Update quantity if product exists
@@ -67,7 +67,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
       
       // Redirect to cart
       router.push('/cart')
-    } catch (err) {
+    } catch {
       setError('Gagal menambahkan ke keranjang')
     } finally {
       setLoading(false)
@@ -122,7 +122,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
 
       // Redirect to checkout
       router.push(`/checkout?orderId=${order.id}`)
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan saat membuat pesanan')
     } finally {
       setLoading(false)

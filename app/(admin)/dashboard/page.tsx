@@ -6,15 +6,12 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { 
   Package, 
   ShoppingCart, 
-  CreditCard, 
-  TrendingUp,
-  Users,
   Clock,
   CheckCircle
 } from 'lucide-react'
 
 export default async function AdminDashboard() {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -186,7 +183,8 @@ export default async function AdminDashboard() {
                     <div>
                       <p className="font-medium">#{order.id.slice(-8)}</p>
                       <p className="text-sm text-gray-600">
-                        {order.user_profiles?.full_name || 'Unknown User'}
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {(order.user_profiles as any)?.full_name || 'Unknown User'}
                       </p>
                       <p className="text-xs text-gray-500">
                         {formatDate(order.created_at)}
@@ -223,9 +221,11 @@ export default async function AdminDashboard() {
                 recentPayments.map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium">#{payment.orders?.id.slice(-8)}</p>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      <p className="font-medium">#{(payment.orders as any)?.id.slice(-8)}</p>
                       <p className="text-sm text-gray-600">
-                        {payment.orders?.user_profiles?.full_name || 'Unknown User'}
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {(payment.orders as any)?.user_profiles?.full_name || 'Unknown User'}
                       </p>
                       <p className="text-xs text-gray-500">
                         {formatDate(payment.created_at)}

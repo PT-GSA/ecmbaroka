@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { formatCurrency } from '@/lib/utils'
-import { ArrowLeft, CreditCard, MapPin, Phone } from 'lucide-react'
+import { ArrowLeft, CreditCard, MapPin } from 'lucide-react'
 import Link from 'next/link'
 
 interface OrderItem {
@@ -32,7 +32,7 @@ interface Order {
   order_items: OrderItem[]
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const [order, setOrder] = useState<Order | null>(null)
   const [shippingAddress, setShippingAddress] = useState('')
   const [phone, setPhone] = useState('')
@@ -107,7 +107,7 @@ export default function CheckoutPage() {
 
       // Redirect to payment page
       router.push(`/customer-orders/${order.id}`)
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan saat menyimpan data')
     } finally {
       setLoading(false)
@@ -268,5 +268,13 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CheckoutContent />
+    </Suspense>
   )
 }

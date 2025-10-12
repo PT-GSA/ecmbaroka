@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { loginUser } from '@/lib/auth-helpers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,44 +15,26 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+    const result = await loginUser(email, password)
 
-      if (error) {
-        setError(error.message)
-        return
+    if (result.success) {
+      if (result.profile?.role === 'admin') {
+        router.push('/admin/dashboard')
+      } else {
+        router.push('/')
       }
-
-      if (data.user) {
-        // Get user profile to determine redirect
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
-
-        if (profile?.role === 'admin') {
-          router.push('/admin/dashboard')
-        } else {
-          router.push('/')
-        }
-        router.refresh()
-      }
-    } catch (err) {
-      setError('Terjadi kesalahan saat login')
-    } finally {
-      setLoading(false)
+      router.refresh()
+    } else {
+      setError(result.error || 'Gagal login')
     }
+
+    setLoading(false)
   }
 
   return (

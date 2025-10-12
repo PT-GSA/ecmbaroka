@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,27 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { ArrowLeft, Package, Calendar, MapPin, Phone, CreditCard, Upload } from 'lucide-react'
 import PaymentUploadForm from '@/components/customer/payment-upload-form'
 
+interface OrderItem {
+  id: string
+  quantity: number
+  price_at_purchase: number
+  products: {
+    name: string
+    image_url: string | null
+  }
+}
+
+interface Payment {
+  id: string
+  proof_image_url: string | null
+  bank_name: string
+  account_name: string
+  transfer_date: string
+  amount: number
+  status: 'pending' | 'verified' | 'rejected'
+  admin_notes: string | null
+}
+
 interface OrderPageProps {
   params: {
     id: string
@@ -17,7 +39,7 @@ interface OrderPageProps {
 }
 
 export default async function OrderDetailPage({ params }: OrderPageProps) {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -125,7 +147,7 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
                   Produk
                 </h4>
                 <div className="space-y-3">
-                  {order.order_items.map((item) => (
+                  {order.order_items.map((item: OrderItem) => (
                     <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
                         <Package className="h-6 w-6 text-gray-400" />
@@ -239,7 +261,7 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {order.payments.map((payment) => (
+                {order.payments.map((payment: Payment) => (
                   <div key={payment.id} className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">Bukti Transfer</span>
@@ -270,9 +292,11 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
                         <div className="mt-3">
                           <span className="text-gray-600 text-sm">Bukti Transfer:</span>
                           <div className="mt-2">
-                            <img 
+                            <Image 
                               src={payment.proof_image_url} 
                               alt="Bukti Transfer"
+                              width={400}
+                              height={300}
                               className="max-w-full h-auto rounded-lg border"
                             />
                           </div>
