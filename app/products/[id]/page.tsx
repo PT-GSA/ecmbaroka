@@ -14,6 +14,9 @@ import ProductPreorderForm from '@/components/customer/product-preorder-form'
 import ProductCard from '@/components/customer/product-card'
 import CustomerNavbar from '@/components/customer/navbar'
 import ProductMediaGallery from '@/components/customer/product-media-gallery'
+import ProductRatingSummary from '@/components/customer/product-rating-summary'
+import ProductReviewForm from '@/components/customer/product-review-form'
+import ProductReviewsList from '@/components/customer/product-reviews-list'
 
 // Render deskripsi sebagai paragraf dan bullet list jika ada tanda '-'/'•'/'*'
 function renderDescriptionContent(desc: string) {
@@ -119,6 +122,55 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const descLines = desc ? desc.split('\n').map((l: string) => l.trim()).filter(Boolean) : []
   const isLongDesc = descLines.length > 8
   const previewDesc = descLines.slice(0, 8).join('\n')
+
+  // Fetch product reviews
+  const { data: reviews } = await supabase
+    .from('product_reviews')
+    .select(`
+      id,
+      rating,
+      comment,
+      verified_purchase,
+      created_at,
+      user_id
+    `)
+    .eq('product_id', id)
+    .eq('is_approved', true)
+    .order('created_at', { ascending: false })
+
+  // Fetch user profiles separately
+  const userIds = reviews?.map(r => r.user_id) || []
+  
+  const { data: userProfiles } = userIds.length > 0 ? await supabase
+    .from('user_profiles')
+    .select('id, full_name')
+    .in('id', userIds) : { data: [] }
+
+  // Combine reviews with user profiles
+  const reviewsWithUsers = reviews?.map(review => ({
+    ...review,
+    user_profiles: userProfiles?.find(profile => profile.id === review.user_id) || null
+  })) || []
+
+
+
+  // Check if current user already reviewed this product
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: userReview } = user ? await supabase
+    .from('product_reviews')
+    .select('id')
+    .eq('product_id', id)
+    .eq('user_id', user.id)
+    .single() : { data: null }
+
+  // Calculate rating distribution
+  const ratingDistribution = {
+    5: reviewsWithUsers?.filter(r => r.rating === 5).length || 0,
+    4: reviewsWithUsers?.filter(r => r.rating === 4).length || 0,
+    3: reviewsWithUsers?.filter(r => r.rating === 3).length || 0,
+    2: reviewsWithUsers?.filter(r => r.rating === 2).length || 0,
+    1: reviewsWithUsers?.filter(r => r.rating === 1).length || 0,
+  }
 
   // Related products: other active products excluding current
   const { data: relatedProducts } = await supabase
@@ -272,6 +324,31 @@ export default async function ProductPage({ params }: ProductPageProps) {
           )}
         </div>
       </div>
+
+      {/* Rating & Reviews Section */}
+      <div className="mt-12 space-y-8">
+        {/* Rating Summary */}
+        <ProductRatingSummary
+          averageRating={product.average_rating || 4.9}
+          totalReviews={product.total_reviews || reviewsWithUsers?.length || 0}
+          ratingDistribution={ratingDistribution}
+        />
+
+        {/* Review Form - Show if user is logged in and hasn't reviewed */}
+        {user && !userReview && (
+          <ProductReviewForm
+            productId={product.id}
+            productName={product.name}
+          />
+        )}
+
+
+        {/* Reviews List */}
+        <ProductReviewsList
+          reviews={reviewsWithUsers}
+        />
+      </div>
+
       {/* Related Products */}
       <div className="mt-12">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Produk Terkait</h2>

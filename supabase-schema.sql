@@ -321,3 +321,85 @@ INSERT INTO products (name, description, price, stock, is_active) VALUES
   ('Susu Pasteurisasi 1 Liter', 'Susu yang telah dipasteurisasi untuk keamanan', 30000, 80, true),
   ('Susu Pasteurisasi 500ml', 'Susu pasteurisasi dalam kemasan praktis', 18000, 120, true)
 ON CONFLICT DO NOTHING;
+
+-- ========================================
+-- PRODUCT REVIEWS & RATINGS SYSTEM
+-- ========================================
+
+-- Tabel product_reviews untuk menyimpan rating dan testimoni
+CREATE TABLE IF NOT EXISTS product_reviews (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  product_id UUID REFERENCES products(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT NOT NULL,
+  verified_purchase BOOLEAN DEFAULT false,
+  is_approved BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(product_id, user_id)
+);
+
+-- Index untuk performa
+CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON product_reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_user_id ON product_reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_created_at ON product_reviews(created_at DESC);
+
+-- Tambahkan kolom average_rating dan total_reviews ke tabel products
+ALTER TABLE products 
+ADD COLUMN IF NOT EXISTS average_rating DECIMAL(2,1) DEFAULT 0.0,
+ADD COLUMN IF NOT EXISTS total_reviews INTEGER DEFAULT 0;
+
+-- Function untuk update rating otomatis
+CREATE OR REPLACE FUNCTION update_product_rating()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE products SET
+    average_rating = (
+      SELECT COALESCE(ROUND(AVG(rating)::numeric, 1), 0)
+      FROM product_reviews
+      WHERE product_id = COALESCE(NEW.product_id, OLD.product_id)
+      AND is_approved = true
+    ),
+    total_reviews = (
+      SELECT COUNT(*)
+      FROM product_reviews
+      WHERE product_id = COALESCE(NEW.product_id, OLD.product_id)
+      AND is_approved = true
+    )
+  WHERE id = COALESCE(NEW.product_id, OLD.product_id);
+  RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger untuk auto-update rating
+DROP TRIGGER IF EXISTS trigger_update_product_rating ON product_reviews;
+CREATE TRIGGER trigger_update_product_rating
+AFTER INSERT OR UPDATE OR DELETE ON product_reviews
+FOR EACH ROW EXECUTE FUNCTION update_product_rating();
+
+-- RLS Policies untuk product_reviews
+ALTER TABLE product_reviews ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Anyone can view approved reviews" ON product_reviews;
+DROP POLICY IF EXISTS "Users can insert their own reviews" ON product_reviews;
+DROP POLICY IF EXISTS "Users can update their own reviews" ON product_reviews;
+DROP POLICY IF EXISTS "Admins can manage all reviews" ON product_reviews;
+
+CREATE POLICY "Anyone can view approved reviews" ON product_reviews
+  FOR SELECT USING (is_approved = true);
+
+CREATE POLICY "Users can insert their own reviews" ON product_reviews
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own reviews" ON product_reviews
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can manage all reviews" ON product_reviews
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
