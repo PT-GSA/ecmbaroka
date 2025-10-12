@@ -13,6 +13,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return []
   },
+  // Vercel optimizations
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
+  // Enable compression
+  compress: true,
+  // Power by header
+  poweredByHeader: false,
+  // Generate static pages
+  output: 'standalone',
 }
 
 export default nextConfig

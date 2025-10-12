@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "vercel-build": "next build",
+    "deploy": "vercel --prod",
+    "preview": "vercel"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
