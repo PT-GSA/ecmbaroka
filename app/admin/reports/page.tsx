@@ -1,22 +1,24 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, type KeyboardEvent } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Users, 
-  DollarSign, 
+import {
+  BarChart3,
+  TrendingUp,
+  Users,
+  DollarSign,
   Download,
-  FileText,
   ShoppingCart,
   Target,
   ArrowUpRight,
-  Filter
+  Filter,
+  Minimize2
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
+const ReportsExportButton = dynamic(() => import('@/components/pdf/ReportsExportButton'), { ssr: false })
 
 interface SalesData {
   date: string
@@ -54,6 +56,23 @@ export default function AdminReports() {
   const [activeTab, setActiveTab] = useState<'sales' | 'customers' | 'financial'>('sales')
   const [periodFilter, setPeriodFilter] = useState('30')
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  const [compact, setCompact] = useState(false)
+
+  // Accessible tab navigation support
+  const tabs: Array<'sales' | 'customers' | 'financial'> = ['sales', 'customers', 'financial']
+  const handleTabKeyDown = (
+    e: KeyboardEvent<HTMLButtonElement>,
+    current: 'sales' | 'customers' | 'financial'
+  ) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      const index = tabs.indexOf(current)
+      const nextIndex = e.key === 'ArrowRight' ? (index + 1) % tabs.length : (index - 1 + tabs.length) % tabs.length
+      const next = tabs[nextIndex]
+      setActiveTab(next)
+      const nextBtn = document.getElementById(`tabbtn-${next}`)
+      nextBtn?.focus()
+    }
+  }
 
   // Mock data
   const [salesData, setSalesData] = useState<SalesData[]>([])
@@ -133,6 +152,8 @@ export default function AdminReports() {
     })
   }
 
+  const percent = (n: number) => `${n}%`
+
   const getSegmentBadge = (segment: string) => {
     const variants = {
       new: 'bg-blue-100 text-blue-800',
@@ -153,9 +174,7 @@ export default function AdminReports() {
     )
   }
 
-  const handleExportPDF = () => {
-    alert('Fitur export PDF akan segera tersedia')
-  }
+  // Removed legacy handleExportPDF in favor of React-PDF
 
   const handleExportExcel = () => {
     alert('Fitur export Excel akan segera tersedia')
@@ -191,6 +210,8 @@ export default function AdminReports() {
           Admin Reports
         </Badge>
       </div>
+
+      <div id="reports-content">
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -294,22 +315,45 @@ export default function AdminReports() {
                   placeholder="Dari"
                   value={dateRange.start}
                   onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                  className="w-40"
+                  className="w-full sm:w-40"
                 />
                 <Input
                   type="date"
                   placeholder="Sampai"
                   value={dateRange.end}
                   onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                  className="w-40"
+                  className="w-full sm:w-40"
                 />
               </div>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleExportPDF} variant="outline" className="text-red-600 border-red-600 hover:bg-red-50">
-                <FileText className="w-4 h-4 mr-2" />
-                Export PDF
+              <Button
+                variant={compact ? 'secondary' : 'outline'}
+                onClick={() => setCompact(v => !v)}
+                aria-pressed={compact}
+                className="text-gray-700 hover:bg-gray-50"
+                title="Tampilkan tampilan ringkas untuk grafik"
+              >
+                <Minimize2 className="w-4 h-4 mr-2" />
+                {compact ? 'Tampilan Ringkas: Aktif' : 'Tampilan Ringkas'}
               </Button>
+              <ReportsExportButton
+                summary={{
+                  totalRevenue,
+                  totalOrders,
+                  totalCustomers,
+                  averageOrderValue,
+                  profitMargin,
+                }}
+                growth={{
+                  revenueGrowth,
+                  ordersGrowth,
+                  customersGrowth,
+                  profitGrowth,
+                }}
+                formatted={{ currency: formatCurrency, percent }}
+                fileName={`Laporan-${new Date().toISOString().slice(0,10)}.pdf`}
+              />
               <Button onClick={handleExportExcel} variant="outline" className="text-green-600 border-green-600 hover:bg-green-50">
                 <Download className="w-4 h-4 mr-2" />
                 Export Excel
@@ -320,10 +364,21 @@ export default function AdminReports() {
       </Card>
 
       {/* Tab Navigation */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+      <div
+        className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto"
+        role="tablist"
+        aria-label="Laporan Tabs"
+        aria-orientation="horizontal"
+      >
         <button
+          id="tabbtn-sales"
+          role="tab"
+          aria-selected={activeTab === 'sales'}
+          aria-controls="tab-sales"
+          tabIndex={activeTab === 'sales' ? 0 : -1}
+          onKeyDown={(e) => handleTabKeyDown(e, 'sales')}
           onClick={() => setActiveTab('sales')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             activeTab === 'sales'
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
@@ -333,8 +388,14 @@ export default function AdminReports() {
           Laporan Penjualan
         </button>
         <button
+          id="tabbtn-customers"
+          role="tab"
+          aria-selected={activeTab === 'customers'}
+          aria-controls="tab-customers"
+          tabIndex={activeTab === 'customers' ? 0 : -1}
+          onKeyDown={(e) => handleTabKeyDown(e, 'customers')}
           onClick={() => setActiveTab('customers')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             activeTab === 'customers'
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
@@ -344,8 +405,14 @@ export default function AdminReports() {
           Laporan Pelanggan
         </button>
         <button
+          id="tabbtn-financial"
+          role="tab"
+          aria-selected={activeTab === 'financial'}
+          aria-controls="tab-financial"
+          tabIndex={activeTab === 'financial' ? 0 : -1}
+          onKeyDown={(e) => handleTabKeyDown(e, 'financial')}
           onClick={() => setActiveTab('financial')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             activeTab === 'financial'
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
@@ -358,7 +425,7 @@ export default function AdminReports() {
 
       {/* Tab Content */}
       {activeTab === 'sales' && (
-        <div className="space-y-4">
+        <section role="tabpanel" id="tab-sales" aria-labelledby="tabbtn-sales" className="space-y-4">
           {/* Sales Chart */}
           <Card>
             <CardHeader>
@@ -368,22 +435,25 @@ export default function AdminReports() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4">
-              <div className="h-64 flex items-end justify-between space-x-2">
-                {salesData.map((data, index) => {
-                  const maxRevenue = Math.max(...salesData.map(d => d.revenue))
-                  const height = (data.revenue / maxRevenue) * 200
-                  return (
-                    <div key={index} className="flex flex-col items-center flex-1">
-                      <div
-                        className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t transition-all duration-300 hover:from-blue-600 hover:to-blue-400"
-                        style={{ height: `${height}px` }}
-                      ></div>
-                      <div className="text-xs text-gray-500 mt-2 transform -rotate-45 origin-left">
-                        {formatDate(data.date)}
+              <div className="h-48 sm:h-64 overflow-hidden" style={{ touchAction: 'pan-y' }}>
+                <div className="w-full flex items-end justify-between gap-1 sm:gap-2">
+                  {salesData.map((data, index) => {
+                    const maxRevenue = Math.max(...salesData.map(d => d.revenue))
+                    const barBaseHeight = compact ? 140 : 200
+                    const height = (data.revenue / maxRevenue) * barBaseHeight
+                    return (
+                      <div key={index} className="flex flex-col items-center flex-1">
+                        <div
+                          className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t transition-all duration-300 hover:from-blue-600 hover:to-blue-400"
+                          style={{ height: `${height}px` }}
+                        ></div>
+                        <div className="text-[10px] sm:text-xs text-gray-500 mt-2 transform -rotate-45 origin-left">
+                          {formatDate(data.date)}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -413,7 +483,7 @@ export default function AdminReports() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-4">
-                        <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div className="w-24 sm:w-32 bg-gray-200 rounded-full h-2">
                           <div
                             className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-300"
                             style={{ width: `${percentage}%` }}
@@ -429,11 +499,11 @@ export default function AdminReports() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </section>
       )}
 
       {activeTab === 'customers' && (
-        <div className="space-y-4">
+        <section role="tabpanel" id="tab-customers" aria-labelledby="tabbtn-customers" className="space-y-4">
           {/* Customer Growth */}
           <Card>
             <CardHeader>
@@ -443,22 +513,25 @@ export default function AdminReports() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4">
-              <div className="h-64 flex items-end justify-between space-x-2">
-                {[45, 52, 38, 61, 48, 55, 67].map((count, index) => {
-                  const maxCount = Math.max(...[45, 52, 38, 61, 48, 55, 67])
-                  const height = (count / maxCount) * 200
-                  const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan']
-                  return (
-                    <div key={index} className="flex flex-col items-center flex-1">
-                      <div
-                        className="w-full bg-gradient-to-t from-purple-500 to-purple-300 rounded-t transition-all duration-300 hover:from-purple-600 hover:to-purple-400"
-                        style={{ height: `${height}px` }}
-                      ></div>
-                      <div className="text-xs text-gray-500 mt-2">{months[index]}</div>
-                      <div className="text-xs font-semibold text-gray-700">{count}</div>
-                    </div>
-                  )
-                })}
+              <div className="h-48 sm:h-64 overflow-x-auto">
+                <div className="min-w-[640px] flex items-end justify-between gap-2">
+                  {[45, 52, 38, 61, 48, 55, 67].map((count, index) => {
+                    const maxCount = Math.max(...[45, 52, 38, 61, 48, 55, 67])
+                    const barBaseHeight = compact ? 140 : 200
+                    const height = (count / maxCount) * barBaseHeight
+                    const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan']
+                    return (
+                      <div key={index} className="flex flex-col items-center flex-1">
+                        <div
+                          className="w-full bg-gradient-to-t from-purple-500 to-purple-300 rounded-t transition-all duration-300 hover:from-purple-600 hover:to-purple-400"
+                          style={{ height: `${height}px` }}
+                        ></div>
+                        <div className="text-xs text-gray-500 mt-2">{months[index]}</div>
+                        <div className="text-xs font-semibold text-gray-700">{count}</div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -524,11 +597,11 @@ export default function AdminReports() {
               </CardContent>
             </Card>
           </div>
-        </div>
+        </section>
       )}
 
       {activeTab === 'financial' && (
-        <div className="space-y-4">
+        <section role="tabpanel" id="tab-financial" aria-labelledby="tabbtn-financial" className="space-y-4">
           {/* Revenue vs Costs */}
           <Card>
             <CardHeader>
@@ -538,27 +611,30 @@ export default function AdminReports() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4">
-              <div className="h-64 flex items-end justify-between space-x-2">
-                {financialData.map((data, index) => {
-                  const maxValue = Math.max(...financialData.map(d => Math.max(d.revenue, d.costs)))
-                  const revenueHeight = (data.revenue / maxValue) * 200
-                  const costHeight = (data.costs / maxValue) * 200
-                  return (
-                    <div key={index} className="flex flex-col items-center flex-1 space-y-1">
-                      <div className="flex flex-col space-y-1 w-full">
-                        <div
-                          className="w-full bg-gradient-to-t from-green-500 to-green-300 rounded-t transition-all duration-300"
-                          style={{ height: `${revenueHeight}px` }}
-                        ></div>
-                        <div
-                          className="w-full bg-gradient-to-t from-red-500 to-red-300 rounded-b transition-all duration-300"
-                          style={{ height: `${costHeight}px` }}
-                        ></div>
+              <div className="h-48 sm:h-64 overflow-x-auto">
+                <div className="min-w-[640px] flex items-end justify-between gap-2">
+                  {financialData.map((data, index) => {
+                    const maxValue = Math.max(...financialData.map(d => Math.max(d.revenue, d.costs)))
+                    const barBaseHeight = compact ? 140 : 200
+                    const revenueHeight = (data.revenue / maxValue) * barBaseHeight
+                    const costHeight = (data.costs / maxValue) * barBaseHeight
+                    return (
+                      <div key={index} className="flex flex-col items-center flex-1 space-y-1">
+                        <div className="flex flex-col space-y-1 w-full">
+                          <div
+                            className="w-full bg-gradient-to-t from-green-500 to-green-300 rounded-t transition-all duration-300"
+                            style={{ height: `${revenueHeight}px` }}
+                          ></div>
+                          <div
+                            className="w-full bg-gradient-to-t from-red-500 to-red-300 rounded-b transition-all duration-300"
+                            style={{ height: `${costHeight}px` }}
+                          ></div>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-2">{data.month}</div>
                       </div>
-                      <div className="text-xs text-gray-500 mt-2">{data.month}</div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
               <div className="flex justify-center space-x-6 mt-4">
                 <div className="flex items-center space-x-2">
@@ -626,8 +702,9 @@ export default function AdminReports() {
             </CardContent>
             </Card>
           </div>
-        </div>
+        </section>
       )}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,58 +19,203 @@ interface OrderItem {
   }
 }
 
-export default async function AdminOrdersPage() {
-  const supabase = await createClient()
-  
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    redirect('/login')
+interface Order {
+  id: string
+  created_at: string
+  status: string
+  total_amount: number
+  shipping_address: string
+  phone?: string
+  notes?: string
+  user_profiles?: {
+    full_name: string
+    phone: string
   }
+  order_items: OrderItem[]
+}
 
-  // Check if user is admin
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+export default function AdminOrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
 
-  if (!profile || profile.role !== 'admin') {
-    redirect('/')
-  }
+  useEffect(() => {
+    // Mock data untuk demo
+    const mockOrders: Order[] = [
+      {
+        id: 'ORD001',
+        created_at: '2024-01-15T10:30:00Z',
+        status: 'completed',
+        total_amount: 250000,
+        shipping_address: 'Jl. Sudirman No. 123, Jakarta Selatan',
+        phone: '+62 812-3456-7890',
+        notes: 'Mohon dikirim pagi hari',
+        user_profiles: {
+          full_name: 'John Doe',
+          phone: '+62 812-3456-7890'
+        },
+        order_items: [
+          {
+            id: '1',
+            quantity: 2,
+            price_at_purchase: 25000,
+            products: {
+              name: 'Susu Segar 1L',
+              price: 25000
+            }
+          },
+          {
+            id: '2',
+            quantity: 3,
+            price_at_purchase: 15000,
+            products: {
+              name: 'Susu Pasteurisasi 500ml',
+              price: 15000
+            }
+          }
+        ]
+      },
+      {
+        id: 'ORD002',
+        created_at: '2024-01-14T14:20:00Z',
+        status: 'processing',
+        total_amount: 180000,
+        shipping_address: 'Jl. Thamrin No. 456, Jakarta Pusat',
+        phone: '+62 813-4567-8901',
+        user_profiles: {
+          full_name: 'Jane Smith',
+          phone: '+62 813-4567-8901'
+        },
+        order_items: [
+          {
+            id: '3',
+            quantity: 4,
+            price_at_purchase: 20000,
+            products: {
+              name: 'Susu Organik 1L',
+              price: 20000
+            }
+          },
+          {
+            id: '4',
+            quantity: 2,
+            price_at_purchase: 50000,
+            products: {
+              name: 'Susu Premium 1L',
+              price: 50000
+            }
+          }
+        ]
+      },
+      {
+        id: 'ORD003',
+        created_at: '2024-01-13T09:15:00Z',
+        status: 'pending',
+        total_amount: 95000,
+        shipping_address: 'Jl. Gatot Subroto No. 789, Jakarta Barat',
+        phone: '+62 814-5678-9012',
+        user_profiles: {
+          full_name: 'Bob Johnson',
+          phone: '+62 814-5678-9012'
+        },
+        order_items: [
+          {
+            id: '5',
+            quantity: 1,
+            price_at_purchase: 25000,
+            products: {
+              name: 'Susu Segar 1L',
+              price: 25000
+            }
+          },
+          {
+            id: '6',
+            quantity: 2,
+            price_at_purchase: 35000,
+            products: {
+              name: 'Susu Organik 1L',
+              price: 35000
+            }
+          }
+        ]
+      },
+      {
+        id: 'ORD004',
+        created_at: '2024-01-12T16:45:00Z',
+        status: 'shipped',
+        total_amount: 320000,
+        shipping_address: 'Jl. Kebon Jeruk No. 321, Jakarta Barat',
+        phone: '+62 815-6789-0123',
+        user_profiles: {
+          full_name: 'Alice Brown',
+          phone: '+62 815-6789-0123'
+        },
+        order_items: [
+          {
+            id: '7',
+            quantity: 3,
+            price_at_purchase: 25000,
+            products: {
+              name: 'Susu Segar 1L',
+              price: 25000
+            }
+          },
+          {
+            id: '8',
+            quantity: 2,
+            price_at_purchase: 35000,
+            products: {
+              name: 'Susu Organik 1L',
+              price: 35000
+            }
+          },
+          {
+            id: '9',
+            quantity: 1,
+            price_at_purchase: 50000,
+            products: {
+              name: 'Susu Premium 1L',
+              price: 50000
+            }
+          }
+        ]
+      },
+      {
+        id: 'ORD005',
+        created_at: '2024-01-11T11:30:00Z',
+        status: 'verified',
+        total_amount: 150000,
+        shipping_address: 'Jl. Senayan No. 654, Jakarta Selatan',
+        phone: '+62 816-7890-1234',
+        user_profiles: {
+          full_name: 'Charlie Wilson',
+          phone: '+62 816-7890-1234'
+        },
+        order_items: [
+          {
+            id: '10',
+            quantity: 2,
+            price_at_purchase: 25000,
+            products: {
+              name: 'Susu Segar 1L',
+              price: 25000
+            }
+          },
+          {
+            id: '11',
+            quantity: 2,
+            price_at_purchase: 50000,
+            products: {
+              name: 'Susu Premium 1L',
+              price: 50000
+            }
+          }
+        ]
+      }
+    ]
 
-  // Get all orders with user info
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select(`
-      *,
-      user_profiles (
-        full_name,
-        phone
-      ),
-      order_items (
-        id,
-        quantity,
-        products (
-          name
-        )
-      )
-    `)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    return (
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">
-          Terjadi Kesalahan
-        </h1>
-        <p className="text-gray-600">
-          Gagal memuat daftar pesanan. Silakan coba lagi nanti.
-        </p>
-      </div>
-    )
-  }
+    setOrders(mockOrders)
+    setLoading(false)
+  }, [])
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -84,6 +230,15 @@ export default async function AdminOrdersPage() {
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
     return <Badge variant={config.variant}>{config.label}</Badge>
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <span className="ml-2 text-gray-600">Memuat pesanan...</span>
+      </div>
+    )
   }
 
   return (

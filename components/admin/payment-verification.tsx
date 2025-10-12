@@ -19,7 +19,7 @@ interface Payment {
   account_name: string
   transfer_date: string
   amount: number
-  status: 'pending' | 'verified' | 'rejected'
+  status: 'pending' | 'verified' | 'rejected' | 'completed'
   admin_notes: string | null
   created_at: string
 }

@@ -18,6 +18,8 @@ import {
   CreditCard
 } from 'lucide-react'
 import Link from 'next/link'
+import { PDFDownloadLink } from '@react-pdf/renderer'
+import InvoicePDF from '@/components/pdf/InvoicePDF'
 
 interface OrderItem {
   id: string
@@ -150,9 +152,7 @@ export default function InvoicePage() {
     return formatDate(dueDate.toISOString())
   }
 
-  const handleDownloadPDF = () => {
-    alert('Fitur download PDF akan segera tersedia')
-  }
+  // Removed legacy HTML2Canvas/jsPDF implementation in favor of React-PDF
 
   const handleSendWhatsApp = () => {
     if (!order) return
@@ -242,10 +242,38 @@ Terima kasih!`
                 <Printer className="mr-2" />
                 Print Invoice
               </Button>
-              <Button onClick={handleDownloadPDF} variant="outline">
-                <Download className="mr-2" />
-                Download PDF
-              </Button>
+              <PDFDownloadLink
+                document={order ? (
+                  <InvoicePDF
+                    order={order}
+                    store={{
+                      storeName: mockInvoiceData.storeName,
+                      storeAddress: mockInvoiceData.storeAddress,
+                      storePhone: mockInvoiceData.storePhone,
+                      storeEmail: mockInvoiceData.storeEmail,
+                      bankName: mockInvoiceData.bankName,
+                      accountNumber: mockInvoiceData.accountNumber,
+                      accountName: mockInvoiceData.accountName,
+                    }}
+                    subtotal={calculateSubtotal()}
+                    tax={calculateTax()}
+                    shipping={calculateShipping()}
+                    total={calculateSubtotal() + calculateTax() + calculateShipping()}
+                    formatted={{
+                      currency: (n: number) => formatCurrency(n),
+                      dateFull: (iso: string) => formatDateFull(iso),
+                    }}
+                  />
+                ) : (<></>)}
+                fileName={`Invoice-${orderId}.pdf`}
+              >
+                {({ loading }) => (
+                  <Button variant="outline" data-pdf-button>
+                    <Download className="mr-2" />
+                    {loading ? 'Menyiapkan...' : 'Download PDF'}
+                  </Button>
+                )}
+              </PDFDownloadLink>
               <Button onClick={handleSendWhatsApp} className="bg-green-600 hover:bg-green-700">
                 <MessageCircle className="mr-2" />
                 Kirim ke WhatsApp
@@ -256,7 +284,7 @@ Terima kasih!`
       </div>
 
       {/* Invoice Container */}
-      <div className="invoice-container max-w-4xl mx-auto bg-white shadow-lg p-8">
+      <div id="invoice-content" className="invoice-container max-w-4xl mx-auto bg-white shadow-lg p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-gray-200">
           <div className="flex items-center">
