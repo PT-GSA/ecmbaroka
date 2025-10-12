@@ -375,7 +375,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <div className="flex items-center gap-2">
               <Image src="/logo.svg" alt="Susu Baroka" width={140} height={32} />
             </div>
-            <div className="text-neutral-600">&copy; 2024 Susu Baroka. Semua hak dilindungi.</div>
+            <div className="text-neutral-600">&copy; 2025 Susu Baroka. Semua hak dilindungi.</div>
           </div>
         </div>
       </footer>

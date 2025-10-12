@@ -1,0 +1,13 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="90" cy="90" r="90" fill="#3B82F6"/>
+  
+  <!-- Milk drop shape -->
+  <path d="M90 34C51 34 20 65 20 104C20 143 51 174 90 174C129 174 160 143 160 104C160 65 129 34 90 34Z" fill="white"/>
+  
+  <!-- Milk drop tail -->
+  <path d="M90 174L103 200H77L90 174Z" fill="white"/>
+  
+  <!-- Brand initial -->
+  <text x="90" y="78" text-anchor="middle" fill="#3B82F6" font-family="Arial, sans-serif" font-size="45" font-weight="bold">B</text>
+</svg>
