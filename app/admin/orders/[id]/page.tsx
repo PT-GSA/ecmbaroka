@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { ArrowLeft, Package, Calendar, MapPin, Phone } from 'lucide-react'
+import { ArrowLeft, Package, Calendar, MapPin, Phone, FileText } from 'lucide-react'
 import OrderStatusUpdate from '@/components/admin/order-status-update'
 import PaymentVerification from '@/components/admin/payment-verification'
 
@@ -247,6 +247,24 @@ export default async function AdminOrderDetailPage({ params }: OrderPageProps) {
             orderId={order.id}
             currentStatus={order.status}
           />
+
+          {/* Generate Invoice */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Invoice</CardTitle>
+              <CardDescription>
+                Generate dan kirim invoice ke customer
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild className="w-full">
+                <Link href={`/admin/orders/${order.id}/invoice`}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Invoice
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
