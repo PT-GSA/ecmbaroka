@@ -67,9 +67,6 @@ export default function CustomerNavbar() {
                 <Link href="/customer-orders" className="text-gray-700 hover:text-primary transition-colors">
                   Pesanan Saya
                 </Link>
-                <Link href="/cart" className="text-gray-700 hover:text-primary transition-colors">
-                  <ShoppingCart className="h-5 w-5" />
-                </Link>
               </>
             )}
           </div>
@@ -95,7 +92,14 @@ export default function CustomerNavbar() {
                   <Link href="/register">Daftar</Link>
                 </Button>
               </div>
+            )}  {user && (
+              <>
+                <Link href="/cart" className="text-gray-700 hover:text-primary transition-colors">
+                  <ShoppingCart className="h-5 w-5" />
+                </Link>
+              </>
             )}
+            
           </div>
 
           {/* Mobile menu button */}

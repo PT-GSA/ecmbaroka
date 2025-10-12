@@ -17,7 +17,6 @@ import {
   ShoppingCart,
   TrendingUp,
   Star,
-  MoreHorizontal,
   Eye,
   Edit,
   Trash2
