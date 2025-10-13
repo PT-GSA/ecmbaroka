@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, getTierPriceForQty } from '@/lib/utils'
 import { ShoppingCart, Plus, Minus } from 'lucide-react'
 
 interface ProductPreorderFormProps {
@@ -22,13 +22,14 @@ interface ProductPreorderFormProps {
 }
 
 export default function ProductPreorderForm({ product }: ProductPreorderFormProps) {
-  const [quantity, setQuantity] = useState(10)
+  const [quantity, setQuantity] = useState(5)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
-  const totalPrice = product.price * quantity
+  const perCartonPrice = getTierPriceForQty(quantity)
+  const totalPrice = perCartonPrice * quantity
 
   const handleAddToCart = async () => {
     setLoading(true)
@@ -43,9 +44,9 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
         return
       }
 
-      // Enforce minimum 10 cartons
-      if (quantity < 10) {
-        setError('Minimal order adalah 10 karton per produk')
+      // Enforce minimum 5 cartons
+      if (quantity < 5) {
+        setError('Minimal order adalah 5 karton per produk')
         return
       }
 
@@ -56,14 +57,16 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
       const existingItemIndex = existingCart.findIndex((item: { productId: string }) => item.productId === product.id)
       
       if (existingItemIndex >= 0) {
-        // Update quantity if product exists
-        existingCart[existingItemIndex].quantity += quantity
+        // Update quantity if product exists and recalculates tier price based on new total quantity
+        const newQty = existingCart[existingItemIndex].quantity + quantity
+        existingCart[existingItemIndex].quantity = newQty
+        existingCart[existingItemIndex].price = getTierPriceForQty(newQty)
       } else {
         // Add new item to cart
         existingCart.push({
           productId: product.id,
           name: product.name,
-          price: product.price,
+          price: perCartonPrice,
           quantity: quantity,
           image_url: product.image_url ?? null
         })
@@ -94,9 +97,9 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
         return
       }
 
-      // Enforce minimum 10 cartons
-      if (quantity < 10) {
-        setError('Minimal order adalah 10 karton per produk')
+      // Enforce minimum 5 cartons
+      if (quantity < 5) {
+        setError('Minimal order adalah 5 karton per produk')
         return
       }
 
@@ -125,7 +128,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
           order_id: order.id,
           product_id: product.id,
           quantity: quantity,
-          price_at_purchase: product.price,
+          price_at_purchase: perCartonPrice,
         })
 
       if (itemError) {
@@ -150,7 +153,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
           Preorder Sekarang
         </CardTitle>
         <CardDescription>
-          Website khusus preorder. Minimal 10 karton per produk.
+          Website khusus preorder. Minimal 5 karton per produk.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -161,8 +164,8 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setQuantity(Math.max(10, quantity - 1))}
-              disabled={quantity <= 10}
+              onClick={() => setQuantity(Math.max(5, quantity - 1))}
+              disabled={quantity <= 5}
             >
               <Minus className="h-4 w-4" />
             </Button>
@@ -170,8 +173,8 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
               id="quantity"
               type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Math.max(10, Math.min(product.stock, parseInt(e.target.value) || 10)))}
-              min={10}
+              onChange={(e) => setQuantity(Math.max(5, Math.min(product.stock, parseInt(e.target.value) || 5)))}
+              min={5}
               max={product.stock}
               className="w-20 text-center"
             />
@@ -195,7 +198,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Harga per karton:</span>
-            <span>{formatCurrency(product.price)}</span>
+            <span>{formatCurrency(perCartonPrice)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span>Jumlah:</span>

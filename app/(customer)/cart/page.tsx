@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, getTierPriceForQty } from '@/lib/utils'
 import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft } from 'lucide-react'
 
 interface CartItem {
@@ -67,17 +67,21 @@ export default function CartPage() {
   }, [supabase])
 
   const updateQuantity = (productId: string, newQuantity: number) => {
-    // Enforce minimum 10 cartons per item
-    const clamped = Math.max(10, newQuantity)
+    // Enforce minimum 5 cartons per item
+    const clamped = Math.max(5, newQuantity)
 
     if (clamped <= 0) {
       removeItem(productId)
       return
     }
 
-    const updatedCart = cartItems.map(item =>
-      item.productId === productId ? { ...item, quantity: clamped } : item
-    )
+    const updatedCart = cartItems.map(item => {
+      if (item.productId === productId) {
+        const newPricePerCarton = getTierPriceForQty(clamped)
+        return { ...item, quantity: clamped, price: newPricePerCarton }
+      }
+      return item
+    })
     setCartItems(updatedCart)
     localStorage.setItem('cart', JSON.stringify(updatedCart))
   }
@@ -93,7 +97,7 @@ export default function CartPage() {
     localStorage.removeItem('cart')
   }
 
-  const totalAmount = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0)
+  const totalAmount = cartItems.reduce((total, item) => total + (getTierPriceForQty(item.quantity) * item.quantity), 0)
 
   const handleCheckout = async () => {
     setLoading(true)
@@ -108,10 +112,10 @@ export default function CartPage() {
         return
       }
 
-      // Validate cart items meet minimum 10 cartons
-      const hasInvalidItem = cartItems.some(item => item.quantity < 10)
+      // Validate cart items meet minimum 5 cartons
+      const hasInvalidItem = cartItems.some(item => item.quantity < 5)
       if (hasInvalidItem) {
-        setError('Minimal order adalah 10 karton per produk. Mohon sesuaikan kuantitas.')
+        setError('Minimal order adalah 5 karton per produk. Mohon sesuaikan kuantitas.')
         setLoading(false)
         return
       }
@@ -139,7 +143,7 @@ export default function CartPage() {
         order_id: order.id,
         product_id: item.productId,
         quantity: item.quantity,
-        price_at_purchase: item.price,
+        price_at_purchase: getTierPriceForQty(item.quantity),
       }))
 
       const { error: itemsError } = await supabase

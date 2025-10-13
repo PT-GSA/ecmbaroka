@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, getTierPriceForQty } from '@/lib/utils'
 import { ArrowLeft, ShoppingCart, Package, Truck } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import ProductPreorderForm from '@/components/customer/product-preorder-form'
@@ -284,16 +284,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </h1>
             <div className="flex items-center gap-4 mb-4">
               <span className="text-3xl font-bold text-primary">
-                {formatCurrency(product.price)}
+                {formatCurrency(getTierPriceForQty(5))}
               </span>
               <Badge variant="outline">
-                Preorder hanya, harga per karton
+                Preorder hanya, harga per karton (harga 5 karton ditampilkan)
               </Badge>
             </div>
             {/* Alert preorder per produk */}
             <Alert className="bg-yellow-50 border-yellow-200 text-yellow-900">
               <AlertDescription>
-                Khusus preorder: minimal 10 karton per produk.
+                Khusus preorder: minimal 5 karton per produk.
               </AlertDescription>
             </Alert>
             {/* Deskripsi dipindahkan ke bawah gallery untuk tampilan lebih rapi */}

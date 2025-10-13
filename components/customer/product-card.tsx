@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, getTierPriceForQty } from '@/lib/utils'
 import { ShoppingCart } from 'lucide-react'
 
 interface ProductCardProps {
@@ -58,7 +58,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
         <div className="flex items-center justify-between mb-3">
           <span className="text-2xl font-bold text-primary">
-            {formatCurrency(product.price)}
+            {formatCurrency(getTierPriceForQty(5))}
           </span>
           <Badge variant="outline">
             Stok: {product.stock}

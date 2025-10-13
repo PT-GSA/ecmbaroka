@@ -71,7 +71,7 @@ export default async function ProductsPage() {
         <div className="mb-6">
           <Alert className="bg-yellow-50 border-yellow-200 text-yellow-900">
             <Megaphone className="h-4 w-4" />
-            <AlertDescription>Khusus Preorder, minimal 10 karton per produk</AlertDescription>
+      <AlertDescription>Khusus Preorder, minimal 5 karton per produk</AlertDescription>
           </Alert>
         </div>
         <div className="mb-8">

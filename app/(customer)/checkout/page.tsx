@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency} from '@/lib/utils'
 import { ArrowLeft, CreditCard, MapPin } from 'lucide-react'
 import Link from 'next/link'
 
@@ -90,10 +90,10 @@ function CheckoutContent() {
     if (!order) return
 
     try {
-      // Validate minimum 10 cartons per item before submit
-      const invalidItem = order.order_items.find((item) => item.quantity < 10)
+      // Validate minimum 5 cartons per item before submit
+      const invalidItem = order.order_items.find((item) => item.quantity < 5)
       if (invalidItem) {
-        setError('Minimal order adalah 10 karton per produk. Mohon sesuaikan jumlah di keranjang sebelum checkout.')
+        setError('Minimal order adalah 5 karton per produk. Mohon sesuaikan jumlah di keranjang sebelum checkout.')
         setLoading(false)
         return
       }
