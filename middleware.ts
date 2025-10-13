@@ -59,7 +59,10 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith('/customer-orders') ||
       request.nextUrl.pathname.startsWith('/cart') ||
       request.nextUrl.pathname.startsWith('/checkout') ||
-      request.nextUrl.pathname.startsWith('/orders')) {
+      request.nextUrl.pathname.startsWith('/orders') ||
+      request.nextUrl.pathname.startsWith('/profile') ||
+      request.nextUrl.pathname.startsWith('/transaction-history') ||
+      request.nextUrl.pathname.startsWith('/notifications')) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }

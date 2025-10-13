@@ -8,9 +8,17 @@ import { Separator } from '@/components/ui/separator'
 import Link from 'next/link'
 import { ArrowLeft, Save } from 'lucide-react'
 import ProductMediaManager from '@/components/admin/product-media-manager'
+import type { Database } from '@/types/database'
 
 interface PageProps {
   searchParams?: Promise<{ pid?: string }>
+}
+
+type UserRole = Database['public']['Tables']['user_profiles']['Row']['role']
+function hasRole(obj: unknown): obj is { role: UserRole } {
+  if (!obj || typeof obj !== 'object') return false
+  const o = obj as Record<string, unknown>
+  return typeof o.role === 'string' && (o.role === 'customer' || o.role === 'admin')
 }
 
 export default async function AdminProductCreatePage({ searchParams }: PageProps) {
@@ -24,13 +32,15 @@ export default async function AdminProductCreatePage({ searchParams }: PageProps
     redirect('/admin-auth/login')
   }
 
-  const { data: profile } = await supabase
+  const profileRes = await supabase
     .from('user_profiles')
     .select('role')
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'admin') {
+  const profileRaw: unknown = profileRes.data
+  const role: UserRole | null = hasRole(profileRaw) ? profileRaw.role : null
+  if (role !== 'admin') {
     redirect('/')
   }
 
@@ -74,17 +84,48 @@ export default async function AdminProductCreatePage({ searchParams }: PageProps
       throw new Error('Nama dan harga wajib diisi')
     }
 
-    const { data, error } = await supa
-      .from('products')
-      .insert({ name, description, price, stock, image_url, is_active, specs })
-      .select('id')
+    const specsForInsert: Record<string, unknown> | null =
+      Object.keys(specs).length > 0 ? specs : null
+
+    const payload: Database['public']['Tables']['products']['Insert'] = {
+      name,
+      description: description || null,
+      price,
+      stock,
+      image_url,
+      is_active,
+      specs: specsForInsert,
+    }
+
+    const productsInsert = supa.from('products') as unknown as {
+      insert: (
+        values:
+          | Database['public']['Tables']['products']['Insert']
+          | Database['public']['Tables']['products']['Insert'][]
+      ) => {
+        select: () => {
+          single: () => Promise<{
+            data: Database['public']['Tables']['products']['Row'] | null
+            error: unknown
+          }>
+        }
+      }
+    }
+
+    const { data, error } = await productsInsert
+      .insert(payload)
+      .select()
       .single()
 
     if (error || !data) {
-      throw new Error(error?.message || 'Gagal membuat produk')
+      const errMessage =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message: unknown }).message)
+          : 'Gagal membuat produk'
+      throw new Error(errMessage)
     }
 
-    // Redirect kembali ke halaman ini dengan pid untuk menampilkan uploader media
+    
     redirect(`/admin/products/new?pid=${data.id}`)
   }
 

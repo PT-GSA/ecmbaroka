@@ -8,14 +8,17 @@ import CustomerNavbar from '@/components/customer/navbar'
 import ProductCard from '@/components/customer/product-card'
 import { createClient } from '@/lib/supabase/server'
 import HeroCarousel from '@/components/customer/hero-carousel'
+import { Database } from '@/types/database'
 
 export default async function HomePage() {
   const supabase = await createClient()
-  const { data: products } = await supabase
+  const { data } = await supabase
     .from('products')
-    .select('id, name, description, price, image_url, stock, is_active')
+    .select('*')
     .eq('is_active', true)
     .limit(8)
+
+  const products = data as Database['public']['Tables']['products']['Row'][] | null
 
   return (
     <div className="min-h-screen bg-neutral-50">

@@ -11,7 +11,6 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
-  Package,
   ShoppingCart,
   Bell,
   History,
@@ -26,7 +25,6 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Produk', href: '/products', icon: Package },
   { name: 'Pesanan Saya', href: '/customer-orders', icon: ShoppingCart },
   { name: 'Keranjang', href: '/cart', icon: ShoppingCart },
   { name: 'Notifikasi', href: '/notifications', icon: Bell, badge: 3 },

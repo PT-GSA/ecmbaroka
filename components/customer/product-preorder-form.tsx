@@ -17,6 +17,7 @@ interface ProductPreorderFormProps {
     name: string
     price: number
     stock: number
+    image_url?: string | null
   }
 }
 
@@ -64,7 +65,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
           name: product.name,
           price: product.price,
           quantity: quantity,
-          image_url: null // Will be fetched later
+          image_url: product.image_url ?? null
         })
       }
       

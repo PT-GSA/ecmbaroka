@@ -1,5 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/types/database'
+
+interface ReviewBody {
+  productId: string
+  rating: number
+  comment: string
+}
+
+function isReviewBody(body: unknown): body is ReviewBody {
+  if (!body || typeof body !== 'object') return false
+  const b = body as Record<string, unknown>
+  return (
+    typeof b.productId === 'string' &&
+    typeof b.rating === 'number' &&
+    typeof b.comment === 'string'
+  )
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +32,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const body: unknown = await request.json()
+    if (!isReviewBody(body)) {
+      return NextResponse.json(
+        { error: 'Format input tidak valid' },
+        { status: 400 }
+      )
+    }
     const { productId, rating, comment } = body
 
     // Validate input
@@ -91,19 +114,33 @@ export async function POST(request: NextRequest) {
       .eq('orders.user_id', user.id)
       .in('orders.status', ['completed', 'shipped'])
 
-    const verifiedPurchase = orderItems && orderItems.length > 0
+    const verifiedPurchase = Boolean(orderItems && orderItems.length > 0)
 
     // Insert review
-    const { data: review, error: insertError } = await supabase
-      .from('product_reviews')
-      .insert({
-        product_id: productId,
-        user_id: user.id,
-        rating,
-        comment: comment.trim(),
-        verified_purchase: verifiedPurchase,
-        is_approved: true // Auto-approve for now, can be changed to false for moderation
-      })
+    const newReview: Database['public']['Tables']['product_reviews']['Insert'] = {
+      product_id: productId,
+      user_id: user.id,
+      rating,
+      comment: comment.trim(),
+      verified_purchase: verifiedPurchase,
+      is_approved: true,
+    }
+
+    const insertBuilder = supabase.from('product_reviews') as unknown as {
+      insert: (
+        values: Database['public']['Tables']['product_reviews']['Insert']
+      ) => {
+        select: () => {
+          single: () => Promise<{
+            data: Database['public']['Tables']['product_reviews']['Row'] | null
+            error: unknown
+          }>
+        }
+      }
+    }
+
+    const { data: review, error: insertError } = await insertBuilder
+      .insert(newReview)
       .select()
       .single()
 
@@ -121,7 +158,7 @@ export async function POST(request: NextRequest) {
       message: 'Review berhasil dikirim'
     })
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in review API:', error)
     return NextResponse.json(
       { error: 'Terjadi kesalahan server' },

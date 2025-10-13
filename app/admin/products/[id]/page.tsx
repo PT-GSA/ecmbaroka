@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { SupabaseClient } from '@supabase/supabase-js'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -15,6 +16,7 @@ import ProductMediaManager from '@/components/admin/product-media-manager'
 import CoverSync from '@/components/admin/cover-sync'
 import { Trash2 } from 'lucide-react'
 import ProductUpdateSuccessDialog from '@/components/admin/product-update-success-dialog'
+import { Database } from '@/types/database'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -39,16 +41,20 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'admin') {
+  const typedProfile = profile as Database['public']['Tables']['user_profiles']['Row'] | null
+
+  if (!typedProfile || typedProfile.role !== 'admin') {
     redirect('/')
   }
 
   // Fetch product by id
-  const { data: product, error } = await supabase
+  const { data, error } = await supabase
     .from('products')
     .select('*')
     .eq('id', id)
     .single()
+
+  const product = data as Database['public']['Tables']['products']['Row'] | null
 
   if (error || !product) {
     notFound()
@@ -98,7 +104,7 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
           </Badge>
           <form action={async () => {
             'use server'
-            const supa = await createClient()
+            const supa: SupabaseClient<Database> = await createClient()
             const { error: delError } = await supa
               .from('products')
               .delete()
@@ -161,7 +167,7 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
 
             <form className="space-y-6" action={async (formData: FormData) => {
               'use server'
-              const supa = await createClient()
+              const supa: SupabaseClient<Database> = await createClient()
               const name = String(formData.get('name') ?? '')
               const description = String(formData.get('description') ?? '')
               const price = Number(formData.get('price') ?? product.price)
@@ -188,7 +194,7 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
                 'shipped_from',
               ] as const
               const existingSpecs = (product.specs ?? {}) as Record<string, unknown>
-              const specs: Record<string, string> = {}
+              const specs: Record<string, unknown> = {}
               for (const key of specKeys) {
                 const raw = formData.get(key)
                 const val = raw ? String(raw).trim() : ''
@@ -204,15 +210,25 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
                 }
               }
 
-              const updateData: Record<string, unknown> = { name, description, price, stock, is_active, specs }
-              // Hanya update image_url jika user mengubah kolom URL Gambar.
-              // Ini mencegah cover terbaru yang diset dari ProductMediaManager ditimpa kembali.
+              const updateData: Database['public']['Tables']['products']['Update'] = {
+                name,
+                description,
+                price,
+                stock,
+                is_active,
+                specs,
+              }
+
               if (image_url_input !== original_image_url) {
                 updateData.image_url = image_url_input ? image_url_input : null
               }
 
-              const { error: updateError } = await supa
-                .from('products')
+              const productsUpdateBuilder = supa.from('products') as unknown as {
+                update: (payload: Database['public']['Tables']['products']['Update']) => {
+                  eq: (column: 'id', value: string) => Promise<{ error: { message: string } | null }>
+                }
+              }
+              const { error: updateError } = await productsUpdateBuilder
                 .update(updateData)
                 .eq('id', id)
 

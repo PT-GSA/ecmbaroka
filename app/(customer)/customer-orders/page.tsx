@@ -7,14 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Package, Calendar, MapPin, Phone } from 'lucide-react'
+import { Database } from '@/types/database'
 
-interface OrderItem {
-  id: string
-  quantity: number
-  price_at_purchase: number
-  products: {
-    name: string
-  }
+type OrderWithItems = Database['public']['Tables']['orders']['Row'] & {
+  order_items: (Database['public']['Tables']['order_items']['Row'] & {
+    products: Pick<Database['public']['Tables']['products']['Row'], 'name'>
+  })[]
 }
 
 export default async function OrdersPage() {
@@ -28,7 +26,7 @@ export default async function OrdersPage() {
   }
 
   // Get user orders
-  const { data: orders, error } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .select(`
       *,
@@ -43,6 +41,8 @@ export default async function OrdersPage() {
     `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+
+  const orders = data as OrderWithItems[]
 
   if (error) {
     return (
@@ -116,7 +116,7 @@ export default async function OrdersPage() {
                     Produk
                   </h4>
                   <div className="space-y-1">
-                    {order.order_items.map((item: OrderItem) => (
+                    {order.order_items.map((item) => (
                       <div key={item.id} className="flex justify-between text-sm">
                         <span>{item.products.name} x {item.quantity}</span>
                         <span>{formatCurrency(item.price_at_purchase * item.quantity)}</span>

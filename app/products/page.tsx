@@ -5,55 +5,60 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Megaphone } from 'lucide-react'
 import Image from 'next/image'
+import { Database } from '@/types/database'
+
+type Product = Database['public']['Tables']['products']['Row']
 
 export default async function ProductsPage() {
   const supabase = await createClient()
   
-  try {
-    const { data: products, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Products fetch error:', error)
-      return (
-        <div className="min-h-screen bg-gray-50">
-          {/* Header */}
-          <CustomerNavbar />
-          
-          {/* Error Content */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-red-600 mb-4">
-                Terjadi Kesalahan
-              </h1>
-              <p className="text-gray-600 mb-4">
-                Gagal memuat daftar produk. Silakan coba lagi nanti.
-              </p>
-              <p className="text-sm text-gray-500">
-                Error: {error.message}
-              </p>
-            </div>
-          </div>
+      const products = data as Product[]
 
-          {/* Footer minimal */}
-          <footer className="border-t border-neutral-200 py-10 bg-white mt-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <Image src="/logo.svg" alt="Susu Baroka" width={140} height={32} />
-                </div>
-                <div className="text-neutral-600">&copy; 2025 Susu Baroka. Semua hak dilindungi.</div>
+      if (error) {
+        console.error('Products fetch error:', error)
+        return (
+          <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <CustomerNavbar />
+            
+            {/* Error Content */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-red-600 mb-4">
+                  Terjadi Kesalahan
+                </h1>
+                <p className="text-gray-600 mb-4">
+                  Gagal memuat daftar produk. Silakan coba lagi nanti.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Error: {error.message}
+                </p>
               </div>
             </div>
-          </footer>
-        </div>
-      )
-    }
 
-    console.log('Products loaded:', products?.length || 0)
+            {/* Footer minimal */}
+            <footer className="border-t border-neutral-200 py-10 bg-white mt-8">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Image src="/logo.svg" alt="Susu Baroka" width={140} height={32} />
+                  </div>
+                  <div className="text-neutral-600">&copy; 2025 Susu Baroka. Semua hak dilindungi.</div>
+                </div>
+              </div>
+            </footer>
+          </div>
+        )
+      }
+
+      console.log('Products loaded:', products?.length || 0)
 
     return (
     <div className="min-h-screen bg-gray-50">

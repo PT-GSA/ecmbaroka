@@ -30,17 +30,36 @@ interface Payment {
   amount: number
   status: 'pending' | 'verified' | 'rejected'
   admin_notes: string | null
+  created_at: string
+}
+
+interface Order {
+  id: string
+  created_at: string
+  status: string
+  order_items: OrderItem[]
+  shipping_address: string
+  phone: string | null
+  notes: string | null
+  total_amount: number
+  payments: Payment[] | null
+}
+
+function assertOrder(value: unknown): asserts value is Order {
+  if (!value || typeof value !== 'object') {
+    throw new Error('Invalid order data')
+  }
 }
 
 interface OrderPageProps {
-  params: Promise<{
+  params: {
     id: string
-  }>
+  }
 }
 
 export default async function OrderDetailPage({ params }: OrderPageProps) {
   const supabase = await createClient()
-  const { id } = await params
+  const { id } = params
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -50,7 +69,7 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
   }
 
   // Get order details
-  const { data: order, error } = await supabase
+  const orderResult = await supabase
     .from('orders')
     .select(`
       *,
@@ -79,8 +98,41 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
     .eq('user_id', user.id)
     .single()
 
-  if (error || !order) {
+  const { data: orderData, error } = orderResult
+  if (error || !orderData) {
     notFound()
+  }
+  assertOrder(orderData)
+  const order: Order = orderData
+
+  const extractPathFromPublicUrl = (url: string) => {
+    try {
+      const pathname = new URL(url).pathname
+      const marker = '/payment-proofs/'
+      const idx = pathname.indexOf(marker)
+      if (idx === -1) return null
+      return pathname.substring(idx + marker.length)
+    } catch {
+      return null
+    }
+  }
+
+  let paymentsWithSignedUrls: Payment[] = order.payments ?? []
+  if (order.payments && order.payments.length > 0) {
+    paymentsWithSignedUrls = await Promise.all(
+      order.payments.map(async (p) => {
+        if (!p.proof_image_url) return p
+        const path = extractPathFromPublicUrl(p.proof_image_url)
+        if (!path) return p
+        const { data } = await supabase.storage
+          .from('payment-proofs')
+          .createSignedUrl(path, 60 * 60)
+        return {
+          ...p,
+          proof_image_url: data?.signedUrl ?? p.proof_image_url,
+        }
+      })
+    )
   }
 
   const getStatusBadge = (status: string) => {
@@ -150,8 +202,18 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
                 <div className="space-y-3">
                   {order.order_items.map((item: OrderItem) => (
                     <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <Package className="h-6 w-6 text-gray-400" />
+                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                        {item.products.image_url ? (
+                          <Image
+                            src={item.products.image_url}
+                            alt={item.products.name}
+                            width={48}
+                            height={48}
+                            className="object-cover"
+                          />
+                        ) : (
+                          <Package className="h-6 w-6 text-gray-400" />
+                        )}
                       </div>
                       <div className="flex-1">
                         <p className="font-medium">{item.products.name}</p>
@@ -253,7 +315,7 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
           )}
 
           {/* Payment Status */}
-          {order.payments && order.payments.length > 0 && (
+          {paymentsWithSignedUrls && paymentsWithSignedUrls.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -262,7 +324,7 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {order.payments.map((payment: Payment) => (
+                {paymentsWithSignedUrls.map((payment: Payment) => (
                   <div key={payment.id} className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">Bukti Transfer</span>

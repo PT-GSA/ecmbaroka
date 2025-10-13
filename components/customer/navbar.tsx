@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { ShoppingCart, LogOut, Menu, X } from 'lucide-react'
+import { ShoppingCart, LogOut, Menu, X, User as UserIcon } from 'lucide-react'
 
 export default function CustomerNavbar() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,6 +78,10 @@ export default function CustomerNavbar() {
                 <span className="text-sm text-gray-700">
                   Halo, {user.email}
                 </span>
+                {/* Dashboard link icon */}
+                <Link href="/dashboard" className="text-gray-700 hover:text-primary transition-colors" title="Dashboard">
+                  <UserIcon className="h-5 w-5" />
+                </Link>
                 <Button variant="outline" size="sm" onClick={handleLogout}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Keluar
@@ -143,6 +147,13 @@ export default function CustomerNavbar() {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Pesanan Saya
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Dashboard
                   </Link>
                   <Link
                     href="/cart"

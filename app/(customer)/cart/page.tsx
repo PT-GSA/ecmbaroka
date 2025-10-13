@@ -16,7 +16,7 @@ interface CartItem {
   name: string
   price: number
   quantity: number
-  image_url?: string
+  image_url?: string | null
 }
 
 export default function CartPage() {
@@ -28,9 +28,43 @@ export default function CartPage() {
 
   useEffect(() => {
     // Load cart from localStorage
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]')
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]') as CartItem[]
     setCartItems(cart)
-  }, [])
+
+    // Backfill missing image_url from products table if needed
+    const backfillImages = async () => {
+      try {
+        const missing = cart.filter((c) => !c.image_url)
+        if (missing.length === 0) return
+
+        const ids = missing.map((m) => m.productId)
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, image_url')
+          .in('id', ids)
+
+        if (error) {
+          console.error('Gagal mengambil gambar produk:', error)
+          return
+        }
+
+        const imageMap = new Map<string, string | null>()
+        for (const row of data || []) {
+          imageMap.set(row.id as string, (row.image_url as string | null) ?? null)
+        }
+
+        const updated = cart.map((item) =>
+          item.image_url ? item : { ...item, image_url: imageMap.get(item.productId) ?? null }
+        )
+        setCartItems(updated)
+        localStorage.setItem('cart', JSON.stringify(updated))
+      } catch (e) {
+        console.error('Backfill image_url error:', e)
+      }
+    }
+
+    backfillImages()
+  }, [supabase])
 
   const updateQuantity = (productId: string, newQuantity: number) => {
     // Enforce minimum 10 cartons per item

@@ -15,8 +15,8 @@ export default function CustomerLayout({
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <CustomerSidebar />
-        <main className="flex-1 lg:ml-12 xl:ml-56 transition-all duration-300">
-          <div className="p-4">
+        <main className="flex-1 transition-all duration-300">
+          <div className="px-3 sm:px-4 py-4">
             {children}
           </div>
         </main>

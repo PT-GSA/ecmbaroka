@@ -17,6 +17,9 @@ import ProductMediaGallery from '@/components/customer/product-media-gallery'
 import ProductRatingSummary from '@/components/customer/product-rating-summary'
 import ProductReviewForm from '@/components/customer/product-review-form'
 import ProductReviewsList from '@/components/customer/product-reviews-list'
+import { Database } from '@/types/database'
+
+type Product = Database['public']['Tables']['products']['Row']
 
 // Render deskripsi sebagai paragraf dan bullet list jika ada tanda '-'/'•'/'*'
 function renderDescriptionContent(desc: string) {
@@ -80,22 +83,26 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const supabase = await createClient()
   const { id } = await params
   
-  const { data: product, error } = await supabase
+  const { data, error } = await supabase
     .from('products')
     .select('*')
     .eq('id', id)
     .single()
 
-  if (error || !product) {
+  if (error || !data) {
     notFound()
   }
+
+  const product = data as Product
 
   // List product media (images/videos) from Supabase storage and build gallery URLs
   const { data: storageItems } = await supabase.storage
     .from('products')
     .list(product.id, { limit: 100 })
 
-  const imageUrls: string[] = (storageItems
+  const storageItemsTyped = storageItems as { name: string }[]
+
+  const imageUrls: string[] = (storageItemsTyped
     ?.filter((item) => /\.(png|jpg|jpeg|webp|gif)$/i.test(item.name))
     .map((item) =>
       supabase.storage
@@ -103,7 +110,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         .getPublicUrl(`${product.id}/${item.name}`).data.publicUrl
     )) ?? []
 
-  const videoUrls: string[] = (storageItems
+  const videoUrls: string[] = (storageItemsTyped
     ?.filter((item) => /\.(mp4|webm|mov|m4v)$/i.test(item.name))
     .map((item) =>
       supabase.storage
@@ -124,7 +131,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const previewDesc = descLines.slice(0, 8).join('\n')
 
   // Fetch product reviews
-  const { data: reviews } = await supabase
+  const { data: reviewsData } = await supabase
     .from('product_reviews')
     .select(`
       id,
@@ -138,30 +145,36 @@ export default async function ProductPage({ params }: ProductPageProps) {
     .eq('is_approved', true)
     .order('created_at', { ascending: false })
 
+  const reviews = reviewsData as Database['public']['Tables']['product_reviews']['Row'][]
+
   // Fetch user profiles separately
   const userIds = reviews?.map(r => r.user_id) || []
-  
+
   const { data: userProfiles } = userIds.length > 0 ? await supabase
     .from('user_profiles')
     .select('id, full_name')
     .in('id', userIds) : { data: [] }
 
+  const userProfilesTyped = userProfiles as Database['public']['Tables']['user_profiles']['Row'][]
+
   // Combine reviews with user profiles
   const reviewsWithUsers = reviews?.map(review => ({
     ...review,
-    user_profiles: userProfiles?.find(profile => profile.id === review.user_id) || null
+    user_profiles: userProfilesTyped?.find(profile => profile.id === review.user_id) || null
   })) || []
 
 
 
   // Check if current user already reviewed this product
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: userReview } = user ? await supabase
+  const { data: userReviewData } = user ? await supabase
     .from('product_reviews')
     .select('id')
     .eq('product_id', id)
     .eq('user_id', user.id)
     .single() : { data: null }
+
+  const userReview = userReviewData as Database['public']['Tables']['product_reviews']['Row'] | null
 
   // Calculate rating distribution
   const ratingDistribution = {
@@ -173,13 +186,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
   }
 
   // Related products: other active products excluding current
-  const { data: relatedProducts } = await supabase
+  const { data: relatedProductsData } = await supabase
     .from('products')
     .select('*')
     .eq('is_active', true)
     .neq('id', product.id)
     .order('created_at', { ascending: false })
     .limit(4)
+
+  const relatedProducts = relatedProductsData as Product[]
 
   return (
     <div>
@@ -387,11 +402,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const supabase = await createClient()
   const { id } = await params
-  const { data: product } = await supabase
+  const { data: productData } = await supabase
     .from('products')
     .select('name, description, image_url')
     .eq('id', id)
     .single()
+
+  const product = productData as Product | null
 
   const title = product ? `${product.name} | Susu Baroka` : 'Produk | Susu Baroka'
   const description = product?.description ?? 'Produk susu Baroka.'

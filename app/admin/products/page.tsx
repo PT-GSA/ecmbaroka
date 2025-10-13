@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Package, Plus, Edit, Eye } from 'lucide-react'
 import BulkDeleteDialog from '@/components/admin/bulk-delete-dialog'
+import { Database } from '@/types/database'
 
 export default async function AdminProductsPage() {
   const supabase = await createClient()
@@ -27,15 +28,19 @@ export default async function AdminProductsPage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'admin') {
+  const typedProfile = profile as Database['public']['Tables']['user_profiles']['Row'] | null
+
+  if (!typedProfile || typedProfile.role !== 'admin') {
     redirect('/')
   }
 
   // Get all products
-  const { data: products, error } = await supabase
+  const { data, error } = await supabase
     .from('products')
     .select('*')
     .order('created_at', { ascending: false })
+
+  const products = data as Database['public']['Tables']['products']['Row'][] | null
 
   if (error) {
     return (
@@ -79,7 +84,8 @@ export default async function AdminProductsPage() {
               .select('role')
               .eq('id', user.id)
               .single()
-            if (!profile || profile.role !== 'admin') {
+            const typedProfile = profile as Database['public']['Tables']['user_profiles']['Row'] | null
+            if (!typedProfile || typedProfile.role !== 'admin') {
               redirect('/')
             }
 
