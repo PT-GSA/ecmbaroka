@@ -99,6 +99,7 @@ export default function ProfileForm({ profile, user, onUpdate }: ProfileFormProp
               variant="outline"
               size="sm"
               onClick={() => setIsEditing(true)}
+              className="hover:bg-blue-500 hover:text-white"
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit

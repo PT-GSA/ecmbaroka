@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -28,8 +28,8 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Produk', href: '/admin/products', icon: Package },
-  { name: 'Pesanan', href: '/admin/orders', icon: ShoppingCart, badge: 5 },
-  { name: 'Pembayaran', href: '/admin/payments', icon: CreditCard, badge: 2 },
+  { name: 'Pesanan', href: '/admin/orders', icon: ShoppingCart },
+  { name: 'Pembayaran', href: '/admin/payments', icon: CreditCard },
   { name: 'Pelanggan', href: '/admin/customers', icon: Users },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
   { name: 'Pengaturan', href: '/admin/settings', icon: Settings },
@@ -41,7 +41,29 @@ export default function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [user, setUser] = useState<{ email?: string } | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const [ordersPendingCount, setOrdersPendingCount] = useState<number | null>(null)
+  const [paymentsPendingCount, setPaymentsPendingCount] = useState<number | null>(null)
+
+  const fetchOrdersPendingCount = useCallback(async () => {
+    const { count, error } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending')
+    if (!error) {
+      setOrdersPendingCount(count ?? 0)
+    }
+  }, [supabase])
+
+  const fetchPaymentsPendingCount = useCallback(async () => {
+    const { count, error } = await supabase
+      .from('payments')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending')
+    if (!error) {
+      setPaymentsPendingCount(count ?? 0)
+    }
+  }, [supabase])
 
   const toggle = () => {
     setCollapsed(!collapsed)
@@ -51,6 +73,9 @@ export default function AdminSidebar() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
+      // Fetch initial counts for admin badges
+      fetchOrdersPendingCount()
+      fetchPaymentsPendingCount()
     }
 
     getUser()
@@ -58,11 +83,48 @@ export default function AdminSidebar() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null)
+        // Refresh counts on auth change
+        fetchOrdersPendingCount()
+        fetchPaymentsPendingCount()
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase.auth])
+  }, [supabase, fetchOrdersPendingCount, fetchPaymentsPendingCount])
+
+  
+
+  
+
+  useEffect(() => {
+    // Realtime updates: refetch counts when orders or payments change
+    const ordersChannel = supabase
+      .channel('admin-orders-count')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          fetchOrdersPendingCount()
+        }
+      )
+      .subscribe()
+
+    const paymentsChannel = supabase
+      .channel('admin-payments-count')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payments' },
+        () => {
+          fetchPaymentsPendingCount()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(ordersChannel)
+      supabase.removeChannel(paymentsChannel)
+    }
+  }, [supabase, fetchOrdersPendingCount, fetchPaymentsPendingCount])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -173,11 +235,21 @@ export default function AdminSidebar() {
                   {!collapsed && (
                     <>
                       <span className="flex-1">{item.name}</span>
-                      {item.badge && (
-                        <Badge variant="secondary" className="ml-2 bg-red-500 text-white text-xs">
-                          {item.badge}
-                        </Badge>
-                      )}
+                      {(() => {
+                        const badgeValue = item.href === '/admin/orders'
+                          ? ordersPendingCount
+                          : item.href === '/admin/payments'
+                          ? paymentsPendingCount
+                          : null
+                        if (typeof badgeValue === 'number' && badgeValue > 0) {
+                          return (
+                            <Badge variant="secondary" className="ml-2 bg-red-500 text-white text-xs">
+                              {badgeValue}
+                            </Badge>
+                          )
+                        }
+                        return null
+                      })()}
                     </>
                   )}
                 </Link>

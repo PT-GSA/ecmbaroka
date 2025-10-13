@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -27,7 +27,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Pesanan Saya', href: '/customer-orders', icon: ShoppingCart },
   { name: 'Keranjang', href: '/cart', icon: ShoppingCart },
-  { name: 'Notifikasi', href: '/notifications', icon: Bell, badge: 3 },
+  { name: 'Notifikasi', href: '/notifications', icon: Bell },
   { name: 'Riwayat Transaksi', href: '/transaction-history', icon: History },
   { name: 'Profile', href: '/profile', icon: User },
 ]
@@ -36,18 +36,34 @@ export default function CustomerSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
-  const [user, setUser] = useState<{ email?: string } | null>(null)
+  const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const [unreadCount, setUnreadCount] = useState<number | null>(null)
 
   const toggle = () => {
     setCollapsed(!collapsed)
   }
 
+  const fetchUnreadCount = useCallback(async (uid: string) => {
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', uid)
+      .eq('is_read', false)
+
+    if (!error) {
+      setUnreadCount(count ?? 0)
+    }
+  }, [supabase])
+
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
+      if (user?.id) {
+        await fetchUnreadCount(user.id)
+      }
     }
 
     getUser()
@@ -55,11 +71,40 @@ export default function CustomerSidebar() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null)
+        const uid = session?.user?.id
+        if (uid) {
+          fetchUnreadCount(uid)
+        } else {
+          setUnreadCount(null)
+        }
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase.auth])
+  }, [supabase, fetchUnreadCount])
+
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = supabase
+      .channel('notifications-count')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          fetchUnreadCount(user.id as string)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchUnreadCount,supabase, user?.id])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -170,9 +215,9 @@ export default function CustomerSidebar() {
                   {!collapsed && (
                     <>
                       <span className="flex-1">{item.name}</span>
-                      {item.badge && (
+                      {item.name === 'Notifikasi' && typeof unreadCount === 'number' && unreadCount > 0 && (
                         <Badge variant="secondary" className="ml-2 bg-red-500 text-white text-xs">
-                          {item.badge}
+                          {unreadCount}
                         </Badge>
                       )}
                     </>

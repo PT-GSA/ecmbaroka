@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,101 +13,131 @@ import {
   XCircle,
   Clock,
   DollarSign,
-  TrendingUp,
-  AlertCircle
+  TrendingUp
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import type { Database } from '@/types/database'
 
-interface Payment {
+type PaymentRow = Database['public']['Tables']['payments']['Row']
+type OrderRow = Database['public']['Tables']['orders']['Row']
+type UserProfileRow = Database['public']['Tables']['user_profiles']['Row']
+
+interface AdminPaymentItem {
   id: string
-  orderId: string
-  customerName: string
+  order_id: string
+  customer_name: string
   amount: number
   method: string
-  status: 'pending' | 'completed' | 'failed' | 'refunded'
-  createdAt: string
-  updatedAt: string
+  status: 'pending' | 'verified' | 'rejected'
+  created_at: string
 }
 
 export default function AdminPayments() {
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
+  const supabase = createClient()
+  const [payments, setPayments] = useState<AdminPaymentItem[]>([])
+  const [filteredPayments, setFilteredPayments] = useState<AdminPaymentItem[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [, setError] = useState<string>('')
+
+  const fetchPayments = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(`
+          id,
+          order_id,
+          bank_name,
+          account_name,
+          transfer_date,
+          amount,
+          status,
+          created_at
+        `)
+        .returns<PaymentRow[]>()
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        setError('Gagal memuat data pembayaran')
+        setPayments([])
+      } else {
+        // Join to get customer name
+        const orderIds = (data ?? []).map(p => p.order_id)
+        let ordersMap: Record<string, { user_id: string }> = {}
+        let usersMap: Record<string, { full_name: string }> = {}
+
+        if (orderIds.length > 0) {
+          const { data: orders } = await supabase
+            .from('orders')
+            .select('id, user_id')
+            .in('id', orderIds)
+            .returns<Pick<OrderRow, 'id' | 'user_id'>[]>()
+          ordersMap = (orders ?? []).reduce((acc, o) => {
+            acc[o.id] = { user_id: o.user_id }
+            return acc
+          }, {} as Record<string, { user_id: string }>)
+
+          const userIds = Array.from(new Set((orders ?? []).map(o => o.user_id)))
+          if (userIds.length > 0) {
+            const { data: users } = await supabase
+              .from('user_profiles')
+              .select('id, full_name')
+              .in('id', userIds)
+              .returns<Pick<UserProfileRow, 'id' | 'full_name'>[]>()
+            usersMap = (users ?? []).reduce((acc, u) => {
+              acc[u.id] = { full_name: u.full_name }
+              return acc
+            }, {} as Record<string, { full_name: string }>)
+          }
+        }
+
+        const items: AdminPaymentItem[] = (data ?? []).map(p => ({
+          id: p.id,
+          order_id: p.order_id,
+          customer_name: usersMap[ordersMap[p.order_id]?.user_id ?? '']?.full_name ?? 'Customer',
+          amount: Number(p.amount),
+          method: 'Bank Transfer',
+          status: p.status,
+          created_at: p.created_at,
+        }))
+        setPayments(items)
+      }
+    } catch {
+      setError('Terjadi kesalahan saat memuat data')
+      setPayments([])
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
 
   useEffect(() => {
-    // Mock data untuk demo
-    const mockPayments: Payment[] = [
-      {
-        id: 'PAY001',
-        orderId: 'SB001',
-        customerName: 'John Doe',
-        amount: 25000,
-        method: 'Bank Transfer',
-        status: 'completed',
-        createdAt: '2024-01-15T10:30:00Z',
-        updatedAt: '2024-01-15T10:35:00Z'
-      },
-      {
-        id: 'PAY002',
-        orderId: 'SB002',
-        customerName: 'Jane Smith',
-        amount: 15000,
-        method: 'Bank Transfer',
-        status: 'pending',
-        createdAt: '2024-01-15T11:15:00Z',
-        updatedAt: '2024-01-15T11:15:00Z'
-      },
-      {
-        id: 'PAY003',
-        orderId: 'SB003',
-        customerName: 'Bob Johnson',
-        amount: 35000,
-        method: 'Bank Transfer',
-        status: 'failed',
-        createdAt: '2024-01-15T12:00:00Z',
-        updatedAt: '2024-01-15T12:05:00Z'
-      },
-      {
-        id: 'PAY004',
-        orderId: 'SB004',
-        customerName: 'Alice Brown',
-        amount: 20000,
-        method: 'Bank Transfer',
-        status: 'refunded',
-        createdAt: '2024-01-14T14:20:00Z',
-        updatedAt: '2024-01-15T09:10:00Z'
-      },
-      {
-        id: 'PAY005',
-        orderId: 'SB005',
-        customerName: 'Charlie Wilson',
-        amount: 45000,
-        method: 'Bank Transfer',
-        status: 'completed',
-        createdAt: '2024-01-15T13:45:00Z',
-        updatedAt: '2024-01-15T13:50:00Z'
-      }
-    ]
-
-    setPayments(mockPayments)
-    setFilteredPayments(mockPayments)
-    setLoading(false)
-  }, [])
+    fetchPayments()
+    // Realtime refresh when payments change
+    const channel = supabase
+      .channel('admin-payments-list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        fetchPayments()
+      })
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchPayments,supabase])
 
   useEffect(() => {
     let filtered = payments
 
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(payment =>
         payment.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.customerName.toLowerCase().includes(searchTerm.toLowerCase())
+        payment.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.customer_name.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
-    // Filter by status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(payment => payment.status === statusFilter)
     }
@@ -133,46 +163,42 @@ export default function AdminPayments() {
     })
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: AdminPaymentItem['status']) => {
     const variants = {
-      completed: 'bg-green-100 text-green-800',
+      verified: 'bg-green-100 text-green-800',
       pending: 'bg-yellow-100 text-yellow-800',
-      failed: 'bg-red-100 text-red-800',
-      refunded: 'bg-blue-100 text-blue-800'
+      rejected: 'bg-red-100 text-red-800',
     }
 
     const labels = {
-      completed: 'Selesai',
+      verified: 'Terverifikasi',
       pending: 'Pending',
-      failed: 'Gagal',
-      refunded: 'Refund'
+      rejected: 'Ditolak',
     }
 
     return (
-      <Badge variant="secondary" className={variants[status as keyof typeof variants]}>
-        {labels[status as keyof typeof labels]}
+      <Badge variant="secondary" className={variants[status]}>
+        {labels[status]}
       </Badge>
     )
   }
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: AdminPaymentItem['status']) => {
     switch (status) {
-      case 'completed':
+      case 'verified':
         return <CheckCircle className="w-4 h-4" />
       case 'pending':
         return <Clock className="w-4 h-4" />
-      case 'failed':
+      case 'rejected':
         return <XCircle className="w-4 h-4" />
-      case 'refunded':
-        return <AlertCircle className="w-4 h-4" />
       default:
         return <Clock className="w-4 h-4" />
     }
   }
 
   const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0)
-  const completedAmount = payments
-    .filter(p => p.status === 'completed')
+  const verifiedAmount = payments
+    .filter(p => p.status === 'verified')
     .reduce((sum, payment) => sum + payment.amount, 0)
   const pendingCount = payments.filter(p => p.status === 'pending').length
 
@@ -211,11 +237,11 @@ export default function AdminPayments() {
 
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pembayaran Selesai</CardTitle>
+            <CardTitle className="text-sm font-medium">Pembayaran Terverifikasi</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(completedAmount)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(verifiedAmount)}</div>
             <p className="text-xs text-muted-foreground">
               Transaksi berhasil
             </p>
@@ -242,7 +268,7 @@ export default function AdminPayments() {
           </CardHeader>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-blue-600">
-              {payments.length > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0}%
+              {payments.length > 0 && totalAmount > 0 ? Math.round((verifiedAmount / totalAmount) * 100) : 0}%
             </div>
             <p className="text-xs text-muted-foreground">
               Tingkat keberhasilan
@@ -279,10 +305,9 @@ export default function AdminPayments() {
                 className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Semua Status</option>
-                <option value="completed">Selesai</option>
+                <option value="verified">Terverifikasi</option>
                 <option value="pending">Pending</option>
-                <option value="failed">Gagal</option>
-                <option value="refunded">Refund</option>
+                <option value="rejected">Ditolak</option>
               </select>
             </div>
           </div>
@@ -319,11 +344,11 @@ export default function AdminPayments() {
                       <div className="flex items-center space-x-2">
                         <p className="font-medium">{payment.id}</p>
                         <span className="text-gray-400">•</span>
-                        <p className="text-sm text-gray-600">Order: {payment.orderId}</p>
+                        <p className="text-sm text-gray-600">Order: {payment.order_id}</p>
                       </div>
-                      <p className="text-sm text-gray-500">{payment.customerName}</p>
+                      <p className="text-sm text-gray-500">{payment.customer_name}</p>
                       <p className="text-xs text-gray-400">
-                        {payment.method} • {formatDate(payment.createdAt)}
+                        {payment.method} • {formatDate(payment.created_at)}
                       </p>
                     </div>
                   </div>
@@ -335,18 +360,69 @@ export default function AdminPayments() {
                     <div className="flex space-x-2">
                       {payment.status === 'pending' && (
                         <>
-                          <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                            onClick={async () => {
+                              setLoading(true)
+                              try {
+                                const { error } = await supabase
+                                  .from('payments')
+                                  .update({ status: 'verified' })
+                                  .eq('id', payment.id)
+                                if (!error) {
+                                  // also set order status to verified
+                                  await supabase
+                                    .from('orders')
+                                    .update({ status: 'verified' })
+                                    .eq('id', payment.order_id)
+                                  // send notification
+                                  try {
+                                    await fetch('/api/notifications', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ orderId: payment.order_id, status: 'verified' })
+                                    })
+                                  } catch {}
+                                  fetchPayments()
+                                }
+                              } finally {
+                                setLoading(false)
+                              }
+                            }}
+                          >
                             Approve
                           </Button>
-                          <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-600 hover:bg-red-50"
+                            onClick={async () => {
+                              setLoading(true)
+                              try {
+                                const { error } = await supabase
+                                  .from('payments')
+                                  .update({ status: 'rejected' })
+                                  .eq('id', payment.id)
+                                if (!error) {
+                                  try {
+                                    await fetch('/api/notifications', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ orderId: payment.order_id, status: 'rejected' })
+                                    })
+                                  } catch {}
+                                  fetchPayments()
+                                }
+                              } finally {
+                                setLoading(false)
+                              }
+                            }}
+                          >
                             Reject
                           </Button>
                         </>
-                      )}
-                      {payment.status === 'completed' && (
-                        <Button size="sm" variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-                          Refund
-                        </Button>
                       )}
                     </div>
                   </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,8 +19,14 @@ import {
   Star,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  Plus
 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { createClient } from '@/lib/supabase/client'
+import type { Database } from '@/types/database'
 
 interface Customer {
   id: string
@@ -42,88 +48,122 @@ export default function AdminCustomers() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [createForm, setCreateForm] = useState({ full_name: '', email: '', password: '', phone: '', address: '' })
+  const [editForm, setEditForm] = useState({ id: '', full_name: '', phone: '', address: '', email: '', password: '' })
+  const [actionLoading, setActionLoading] = useState(false)
+
+  type UserProfileRow = Database['public']['Tables']['user_profiles']['Row']
+  type OrderRow = Database['public']['Tables']['orders']['Row']
+
+  const loadCustomers = useCallback(async () => {
+      setLoading(true)
+      // Ambil semua profil customer
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, phone, address, role, created_at')
+        .eq('role', 'customer')
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError)
+        setCustomers([])
+        setFilteredCustomers([])
+        setLoading(false)
+        return
+      }
+
+      const profiles = (profilesData ?? []) as UserProfileRow[]
+      const userIds = profiles.map(p => p.id).filter((id): id is string => typeof id === 'string' && id.length > 0)
+
+      // Ambil semua orders untuk daftar user di atas
+      const { data: ordersData, error: ordersError } = userIds.length > 0 ? await supabase
+        .from('orders')
+        .select('id, user_id, created_at, total_amount')
+        .in('user_id', userIds) : { data: [], error: null }
+
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError)
+      }
+
+      const orders = (ordersData ?? []) as OrderRow[]
+
+      // Buat map order per user
+      const ordersMap = new Map<string, OrderRow[]>()
+      userIds.forEach(uid => ordersMap.set(uid, []))
+      orders.forEach(o => {
+        const uid = o.user_id as string
+        if (!ordersMap.has(uid)) ordersMap.set(uid, [])
+        ordersMap.get(uid)!.push(o)
+      })
+
+      // Transform ke Customer
+      const customersResult: Customer[] = profiles.map(p => {
+        const uid = p.id as string
+        const userOrders = ordersMap.get(uid) ?? []
+        const totalOrders = userOrders.length
+        const totalSpent = userOrders.reduce((sum, o) => sum + Number(o.total_amount ?? 0), 0)
+        const lastOrder = userOrders
+          .map(o => o.created_at)
+          .filter((d): d is string => typeof d === 'string' && d.length > 0)
+          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+
+        const joinDate = (p.created_at as string) ?? new Date().toISOString()
+        const lastOrderDate = lastOrder ?? joinDate
+
+        const status: Customer['status'] = totalOrders > 0 ? 'active' : 'inactive'
+
+        return {
+          id: uid,
+          name: p.full_name ?? 'Tanpa Nama',
+          email: '', // Email tidak tersedia dari public schema
+          phone: p.phone ?? '-',
+          address: p.address ?? '-',
+          joinDate,
+          totalOrders,
+          totalSpent,
+          lastOrderDate,
+          status,
+          avatar: undefined,
+        }
+      })
+
+      setCustomers(customersResult)
+      setFilteredCustomers(customersResult)
+      setLoading(false)
+  }, [supabase])
 
   useEffect(() => {
-    // Mock data untuk demo
-    const mockCustomers: Customer[] = [
-      {
-        id: 'CUST001',
-        name: 'John Doe',
-        email: 'john.doe@email.com',
-        phone: '+62 812-3456-7890',
-        address: 'Jl. Sudirman No. 123, Jakarta Selatan',
-        joinDate: '2024-01-10',
-        totalOrders: 15,
-        totalSpent: 450000,
-        lastOrderDate: '2024-01-15',
-        status: 'active'
-      },
-      {
-        id: 'CUST002',
-        name: 'Jane Smith',
-        email: 'jane.smith@email.com',
-        phone: '+62 813-4567-8901',
-        address: 'Jl. Thamrin No. 456, Jakarta Pusat',
-        joinDate: '2024-01-05',
-        totalOrders: 8,
-        totalSpent: 280000,
-        lastOrderDate: '2024-01-14',
-        status: 'active'
-      },
-      {
-        id: 'CUST003',
-        name: 'Bob Johnson',
-        email: 'bob.johnson@email.com',
-        phone: '+62 814-5678-9012',
-        address: 'Jl. Gatot Subroto No. 789, Jakarta Barat',
-        joinDate: '2023-12-20',
-        totalOrders: 3,
-        totalSpent: 95000,
-        lastOrderDate: '2024-01-08',
-        status: 'inactive'
-      },
-      {
-        id: 'CUST004',
-        name: 'Alice Brown',
-        email: 'alice.brown@email.com',
-        phone: '+62 815-6789-0123',
-        address: 'Jl. Kebon Jeruk No. 321, Jakarta Barat',
-        joinDate: '2024-01-12',
-        totalOrders: 22,
-        totalSpent: 680000,
-        lastOrderDate: '2024-01-15',
-        status: 'active'
-      },
-      {
-        id: 'CUST005',
-        name: 'Charlie Wilson',
-        email: 'charlie.wilson@email.com',
-        phone: '+62 816-7890-1234',
-        address: 'Jl. Senayan No. 654, Jakarta Selatan',
-        joinDate: '2023-11-15',
-        totalOrders: 1,
-        totalSpent: 25000,
-        lastOrderDate: '2023-12-01',
-        status: 'suspended'
-      },
-      {
-        id: 'CUST006',
-        name: 'Diana Lee',
-        email: 'diana.lee@email.com',
-        phone: '+62 817-8901-2345',
-        address: 'Jl. Pondok Indah No. 987, Jakarta Selatan',
-        joinDate: '2024-01-08',
-        totalOrders: 12,
-        totalSpent: 380000,
-        lastOrderDate: '2024-01-13',
-        status: 'active'
-      }
-    ]
+    loadCustomers()
 
-    setCustomers(mockCustomers)
-    setFilteredCustomers(mockCustomers)
-    setLoading(false)
-  }, [])
+    // Realtime: refresh saat ada perubahan pada user_profiles (customer saja) atau orders
+    const profilesChannel = supabase
+      .channel('admin-customers-profiles')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_profiles', filter: 'role=eq.customer' },
+        () => { loadCustomers() }
+      )
+      .subscribe()
+
+    const ordersChannel = supabase
+      .channel('admin-customers-orders')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => { loadCustomers() }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(profilesChannel)
+      supabase.removeChannel(ordersChannel)
+    }
+  }, [loadCustomers, supabase])
 
   useEffect(() => {
     let filtered = customers
@@ -131,7 +171,6 @@ export default function AdminCustomers() {
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(customer =>
-        customer.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.phone.includes(searchTerm)
@@ -203,10 +242,16 @@ export default function AdminCustomers() {
             Kelola data dan aktivitas pelanggan
           </p>
         </div>
-        <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-          <Users className="w-4 h-4 mr-1" />
-          Admin Panel
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+            <Users className="w-4 h-4 mr-1" />
+            Admin Panel
+          </Badge>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Pelanggan
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -278,7 +323,7 @@ export default function AdminCustomers() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Cari berdasarkan ID, nama, email, atau nomor telepon..."
+                  placeholder="Cari berdasarkan nama, email, atau nomor telepon..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -332,8 +377,6 @@ export default function AdminCustomers() {
                     <div>
                       <div className="flex items-center space-x-2">
                         <p className="font-medium">{customer.name}</p>
-                        <span className="text-gray-400">•</span>
-                        <p className="text-sm text-gray-600">{customer.id}</p>
                       </div>
                       <div className="flex items-center space-x-4 mt-1">
                         <div className="flex items-center space-x-1">
@@ -375,10 +418,34 @@ export default function AdminCustomers() {
                       <Button size="sm" variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 border-green-600 hover:bg-green-50"
+                        onClick={() => {
+                          setSelectedCustomer(customer)
+                          setEditForm({
+                            id: customer.id,
+                            full_name: customer.name,
+                            phone: customer.phone === '-' ? '' : customer.phone,
+                            address: customer.address === '-' ? '' : customer.address,
+                            email: '',
+                            password: ''
+                          })
+                          setEditOpen(true)
+                        }}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 border-red-600 hover:bg-red-50"
+                        onClick={() => {
+                          setSelectedCustomer(customer)
+                          setDeleteOpen(true)
+                        }}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -389,6 +456,193 @@ export default function AdminCustomers() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Customer Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tambah Pelanggan</DialogTitle>
+            <DialogDescription>Masukkan data pelanggan baru.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="full_name">Nama Lengkap</Label>
+              <Input id="full_name" value={createForm.full_name} onChange={(e) => setCreateForm({ ...createForm, full_name: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="phone">Nomor Telepon</Label>
+              <Input id="phone" value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="address">Alamat</Label>
+              <Textarea id="address" value={createForm.address} onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Batal</Button>
+            </DialogClose>
+            <Button
+              onClick={async () => {
+                try {
+                  setActionLoading(true)
+                  const res = await fetch('/api/customers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      email: createForm.email,
+                      password: createForm.password,
+                      full_name: createForm.full_name,
+                      phone: createForm.phone || null,
+                      address: createForm.address || null,
+                    }),
+                  })
+                  if (!res.ok) throw new Error('Gagal membuat pelanggan')
+                  setCreateOpen(false)
+                  setCreateForm({ full_name: '', email: '', password: '', phone: '', address: '' })
+                  await loadCustomers()
+                } catch (err) {
+                  console.error(err)
+                } finally {
+                  setActionLoading(false)
+                }
+              }}
+              disabled={actionLoading}
+            >
+              Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Customer Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Pelanggan</DialogTitle>
+            <DialogDescription>Perbarui data pelanggan.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="edit_full_name">Nama Lengkap</Label>
+              <Input id="edit_full_name" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="edit_email">Email (opsional)</Label>
+                <Input id="edit_email" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="edit_password">Password (opsional)</Label>
+                <Input id="edit_password" type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit_phone">Nomor Telepon</Label>
+              <Input id="edit_phone" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="edit_address">Alamat</Label>
+              <Textarea id="edit_address" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Batal</Button>
+            </DialogClose>
+            <Button
+              onClick={async () => {
+                if (!editForm.id) return
+                try {
+                  setActionLoading(true)
+                  const payload: Record<string, unknown> = {
+                    id: editForm.id,
+                    full_name: editForm.full_name,
+                    phone: editForm.phone || null,
+                    address: editForm.address || null,
+                  }
+                  if (editForm.email) payload.email = editForm.email
+                  if (editForm.password) payload.password = editForm.password
+                  const res = await fetch('/api/customers', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                  })
+                  if (!res.ok) throw new Error('Gagal memperbarui pelanggan')
+                  setEditOpen(false)
+                  await loadCustomers()
+                } catch (err) {
+                  console.error(err)
+                } finally {
+                  setActionLoading(false)
+                }
+              }}
+              disabled={actionLoading}
+            >
+              Simpan Perubahan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Customer Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus Pelanggan</DialogTitle>
+            <DialogDescription>
+              Tindakan ini akan menghapus akun dan data terkait pelanggan.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-gray-700">
+            {selectedCustomer ? (
+              <p>
+                Anda yakin ingin menghapus <span className="font-semibold">{selectedCustomer.name}</span>?
+              </p>
+            ) : (
+              <p>Pilih pelanggan terlebih dahulu.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Batal</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!selectedCustomer) return
+                try {
+                  setActionLoading(true)
+                  const res = await fetch('/api/customers', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: selectedCustomer.id }),
+                  })
+                  if (!res.ok) throw new Error('Gagal menghapus pelanggan')
+                  setDeleteOpen(false)
+                  setSelectedCustomer(null)
+                  await loadCustomers()
+                } catch (err) {
+                  console.error(err)
+                } finally {
+                  setActionLoading(false)
+                }
+              }}
+              disabled={actionLoading}
+            >
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

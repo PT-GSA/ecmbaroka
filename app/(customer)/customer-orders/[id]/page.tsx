@@ -52,14 +52,14 @@ function assertOrder(value: unknown): asserts value is Order {
 }
 
 interface OrderPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function OrderDetailPage({ params }: OrderPageProps) {
   const supabase = await createClient()
-  const { id } = params
+  const { id } = await params
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()

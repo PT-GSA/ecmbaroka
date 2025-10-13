@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, type KeyboardEvent } from 'react'
+import { useState, useEffect, type KeyboardEvent } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,8 @@ import {
   Minimize2
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import type { Database } from '@/types/database'
 const ReportsExportButton = dynamic(() => import('@/components/pdf/ReportsExportButton'), { ssr: false })
 
 interface SalesData {
@@ -52,6 +54,8 @@ interface FinancialData {
   profitMargin: number
 }
 
+type PaymentRowSlim = Pick<Database['public']['Tables']['payments']['Row'], 'amount' | 'status' | 'transfer_date'>
+
 export default function AdminReports() {
   const [activeTab, setActiveTab] = useState<'sales' | 'customers' | 'financial'>('sales')
   const [periodFilter, setPeriodFilter] = useState('30')
@@ -74,67 +78,237 @@ export default function AdminReports() {
     }
   }
 
-  // Mock data
   const [salesData, setSalesData] = useState<SalesData[]>([])
   const [productData, setProductData] = useState<ProductData[]>([])
   const [customerData, setCustomerData] = useState<CustomerData[]>([])
   const [financialData, setFinancialData] = useState<FinancialData[]>([])
+  const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [monthlyCustomers, setMonthlyCustomers] = useState<{ month: string, count: number }[]>([])
+  const [paymentDistribution, setPaymentDistribution] = useState<{ label: string, percent: number }[]>([])
 
-  const generateMockData = useCallback(() => {
-    // Sales data
-    const sales: SalesData[] = []
-    const days = parseInt(periodFilter)
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      sales.push({
-        date: date.toISOString().split('T')[0],
-        revenue: Math.floor(Math.random() * 500000) + 100000,
-        orders: Math.floor(Math.random() * 20) + 5,
-        customers: Math.floor(Math.random() * 15) + 3
-      })
-    }
-    setSalesData(sales)
-
-    // Product data
-    const products: ProductData[] = [
-      { id: 'P001', name: 'Susu Steril 1L', sales: 45, revenue: 1125000, quantity: 45 },
-      { id: 'P002', name: 'Susu Pasteurisasi 500ml', sales: 38, revenue: 570000, quantity: 38 },
-      { id: 'P003', name: 'Susu Organik 1L', sales: 32, revenue: 1120000, quantity: 32 },
-      { id: 'P004', name: 'Susu Premium 1L', sales: 28, revenue: 980000, quantity: 28 },
-      { id: 'P005', name: 'Susu UHT 250ml', sales: 25, revenue: 375000, quantity: 25 }
-    ]
-    setProductData(products)
-
-    // Customer data
-    const customers: CustomerData[] = [
-      { id: 'C001', name: 'John Doe', orders: 15, totalSpent: 450000, lastOrder: '2024-01-15', segment: 'vip' },
-      { id: 'C002', name: 'Jane Smith', orders: 8, totalSpent: 280000, lastOrder: '2024-01-14', segment: 'regular' },
-      { id: 'C003', name: 'Bob Johnson', orders: 3, totalSpent: 95000, lastOrder: '2024-01-08', segment: 'new' },
-      { id: 'C004', name: 'Alice Brown', orders: 22, totalSpent: 680000, lastOrder: '2024-01-15', segment: 'vip' },
-      { id: 'C005', name: 'Charlie Wilson', orders: 1, totalSpent: 25000, lastOrder: '2023-12-01', segment: 'new' },
-      { id: 'C006', name: 'Diana Lee', orders: 12, totalSpent: 380000, lastOrder: '2024-01-13', segment: 'regular' },
-      { id: 'C007', name: 'Eva Davis', orders: 18, totalSpent: 520000, lastOrder: '2024-01-12', segment: 'vip' },
-      { id: 'C008', name: 'Frank Miller', orders: 6, totalSpent: 180000, lastOrder: '2024-01-10', segment: 'regular' }
-    ]
-    setCustomerData(customers)
-
-    // Financial data
-    const financial: FinancialData[] = [
-      { month: 'Jan 2024', revenue: 4500000, costs: 2700000, profit: 1800000, profitMargin: 40 },
-      { month: 'Dec 2023', revenue: 4200000, costs: 2520000, profit: 1680000, profitMargin: 40 },
-      { month: 'Nov 2023', revenue: 3800000, costs: 2280000, profit: 1520000, profitMargin: 40 },
-      { month: 'Oct 2023', revenue: 4100000, costs: 2460000, profit: 1640000, profitMargin: 40 },
-      { month: 'Sep 2023', revenue: 3900000, costs: 2340000, profit: 1560000, profitMargin: 40 },
-      { month: 'Aug 2023', revenue: 3600000, costs: 2160000, profit: 1440000, profitMargin: 40 }
-    ]
-    setFinancialData(financial)
-  }, [periodFilter])
+  const supabase = createSupabaseClient()
 
   useEffect(() => {
-    // Generate mock data based on period filter
-    generateMockData()
-  }, [generateMockData])
+    const fetchReports = async () => {
+      setLoading(true)
+      setErrorMsg(null)
+      try {
+        // Determine range
+        let startDate: Date
+        let endDate: Date
+        if (dateRange.start && dateRange.end) {
+          startDate = new Date(dateRange.start)
+          endDate = new Date(dateRange.end)
+        } else {
+          endDate = new Date()
+          const days = parseInt(periodFilter)
+          startDate = new Date()
+          startDate.setDate(endDate.getDate() - (isNaN(days) ? 30 : days) + 1)
+        }
+
+        const startISO = startDate.toISOString()
+        const endISO = endDate.toISOString()
+
+        type OrderRow = Database['public']['Tables']['orders']['Row']
+        type PaymentRow = Database['public']['Tables']['payments']['Row']
+        type OrderItemRow = Database['public']['Tables']['order_items']['Row']
+        type ProductRow = Pick<Database['public']['Tables']['products']['Row'], 'id' | 'name'>
+        type UserProfileRow = Pick<Database['public']['Tables']['user_profiles']['Row'], 'id' | 'full_name' | 'created_at'>
+
+        // Fetch core datasets in parallel
+        const [ordersRes, paymentsRes] = await Promise.all([
+          supabase
+            .from('orders')
+            .select('*')
+            .gte('created_at', startISO)
+            .lte('created_at', endISO),
+          supabase
+            .from('payments')
+            .select('*')
+            .eq('status', 'verified')
+            .gte('transfer_date', startISO)
+            .lte('transfer_date', endISO)
+        ])
+
+        if (ordersRes.error) throw new Error(ordersRes.error.message)
+        if (paymentsRes.error) throw new Error(paymentsRes.error.message)
+
+        const orders = (ordersRes.data ?? []) as OrderRow[]
+        const payments = (paymentsRes.data ?? []) as PaymentRow[]
+
+        // SalesData per day
+        const daysSpan: string[] = []
+        const cursor = new Date(startDate)
+        while (cursor <= endDate) {
+          daysSpan.push(new Date(cursor).toISOString().slice(0, 10))
+          cursor.setDate(cursor.getDate() + 1)
+        }
+        const dailySales: SalesData[] = daysSpan.map((d) => {
+          const revenue = payments
+            .filter(p => p.transfer_date.slice(0,10) === d)
+            .reduce((sum, p) => sum + Number(p.amount), 0)
+          const dayOrders = orders.filter(o => o.created_at.slice(0,10) === d)
+          const customersCount = new Set(dayOrders.map(o => o.user_id)).size
+          return { date: d, revenue, orders: dayOrders.length, customers: customersCount }
+        })
+        setSalesData(dailySales)
+
+        // Top products from order_items
+        const orderIds = orders.map(o => o.id)
+        let items: OrderItemRow[] = []
+        if (orderIds.length > 0) {
+          const itemsRes = await supabase
+            .from('order_items')
+            .select('*')
+            .in('order_id', orderIds)
+          if (itemsRes.error) throw new Error(itemsRes.error.message)
+          items = (itemsRes.data ?? []) as OrderItemRow[]
+        }
+        const productIds = Array.from(new Set(items.map(i => i.product_id)))
+        const productsMap = new Map<string, string>()
+        if (productIds.length > 0) {
+          const productsRes = await supabase
+            .from('products')
+            .select('id,name')
+            .in('id', productIds)
+          if (productsRes.error) throw new Error(productsRes.error.message)
+          const products = (productsRes.data ?? []) as ProductRow[]
+          products.forEach(p => productsMap.set(p.id, p.name))
+        }
+        const productAgg = new Map<string, { quantity: number, revenue: number, orderSet: Set<string> }>()
+        items.forEach(i => {
+          const key = i.product_id
+          const prev = productAgg.get(key) ?? { quantity: 0, revenue: 0, orderSet: new Set<string>() }
+          prev.quantity += i.quantity
+          prev.revenue += i.quantity * Number(i.price_at_purchase)
+          prev.orderSet.add(i.order_id)
+          productAgg.set(key, prev)
+        })
+        const topProducts: ProductData[] = Array.from(productAgg.entries())
+          .map(([pid, agg]) => ({
+            id: pid,
+            name: productsMap.get(pid) ?? pid,
+            sales: agg.orderSet.size,
+            revenue: agg.revenue,
+            quantity: agg.quantity,
+          }))
+          .sort((a, b) => b.quantity - a.quantity)
+          .slice(0, 5)
+        setProductData(topProducts)
+
+        // Top customers
+        const byUser = new Map<string, { orders: OrderRow[], payments: PaymentRow[] }>()
+        orders.forEach(o => {
+          const bucket = byUser.get(o.user_id) ?? { orders: [], payments: [] }
+          bucket.orders.push(o)
+          byUser.set(o.user_id, bucket)
+        })
+        payments.forEach(p => {
+          // map payment to user via order_id
+          const order = orders.find(o => o.id === p.order_id)
+          if (!order) return
+          const bucket = byUser.get(order.user_id) ?? { orders: [], payments: [] }
+          bucket.payments.push(p)
+          byUser.set(order.user_id, bucket)
+        })
+        const userIds = Array.from(byUser.keys())
+        const namesMap = new Map<string, { name: string, created_at: string }>()
+        if (userIds.length > 0) {
+          const profilesRes = await supabase
+            .from('user_profiles')
+            .select('id, full_name, created_at')
+            .in('id', userIds)
+          if (profilesRes.error) throw new Error(profilesRes.error.message)
+          const profiles = (profilesRes.data ?? []) as UserProfileRow[]
+          profiles.forEach(p => namesMap.set(p.id, { name: p.full_name, created_at: p.created_at }))
+        }
+        const customersComputed: CustomerData[] = Array.from(byUser.entries()).map(([uid, data]) => {
+          const name = namesMap.get(uid)?.name ?? uid
+          const ordersCount = data.orders.length
+          const totalSpent = data.payments.reduce((sum, p) => sum + Number(p.amount), 0)
+          const lastOrder = data.orders.sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.created_at ?? ''
+          const segment: CustomerData['segment'] = ordersCount > 10 ? 'vip' : ordersCount > 3 ? 'regular' : 'new'
+          return { id: uid, name, orders: ordersCount, totalSpent, lastOrder: lastOrder.slice(0,10), segment }
+        })
+        setCustomerData(customersComputed.sort((a, b) => b.totalSpent - a.totalSpent))
+
+        // Financial monthly (last 6 months)
+        const now = new Date()
+        const months: { key: string, label: string, start: Date, end: Date }[] = []
+        for (let i = 5; i >= 0; i--) {
+          const m = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          const startM = new Date(m)
+          const endM = new Date(m.getFullYear(), m.getMonth() + 1, 0)
+          const label = m.toLocaleString('id-ID', { month: 'short' }) + ' ' + m.getFullYear()
+          months.push({ key: m.toISOString().slice(0,7), label, start: startM, end: endM })
+        }
+        const monthLabels = months.map(m => m.label)
+        const monthlyRevenue: number[] = []
+        for (const m of months) {
+          const { data, error } = await supabase
+            .from('payments')
+            .select('amount, status, transfer_date')
+            .eq('status', 'verified')
+            .gte('transfer_date', m.start.toISOString())
+            .lte('transfer_date', new Date(m.end.getFullYear(), m.end.getMonth(), m.end.getDate(), 23, 59, 59).toISOString())
+          if (error) throw new Error(error.message)
+          const rows = (data ?? []) as PaymentRowSlim[]
+          const sum = rows.reduce((s, p) => s + Number(p.amount), 0)
+          monthlyRevenue.push(sum)
+        }
+        const financial: FinancialData[] = monthLabels.map((label, idx) => {
+          const revenue = monthlyRevenue[idx]
+          const costs = 0
+          const profit = revenue - costs
+          const profitMargin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0
+          return { month: label, revenue, costs, profit, profitMargin }
+        })
+        setFinancialData(financial)
+
+        // Monthly new customers (last 7 months)
+        const months7: { label: string, start: Date, end: Date }[] = []
+        for (let i = 6; i >= 0; i--) {
+          const m = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          const startM = new Date(m)
+          const endM = new Date(m.getFullYear(), m.getMonth() + 1, 0)
+          const label = m.toLocaleString('id-ID', { month: 'short' })
+          months7.push({ label, start: startM, end: endM })
+        }
+        const monthlyCounts: { month: string, count: number }[] = []
+        for (const m of months7) {
+          const { count, error } = await supabase
+            .from('user_profiles')
+            .select('id', { count: 'exact', head: true })
+            .gte('created_at', m.start.toISOString())
+            .lte('created_at', new Date(m.end.getFullYear(), m.end.getMonth(), m.end.getDate(), 23, 59, 59).toISOString())
+          if (error) throw new Error(error.message)
+          monthlyCounts.push({ month: m.label, count: count ?? 0 })
+        }
+        setMonthlyCustomers(monthlyCounts)
+
+        // Payment distribution by bank_name (verified payments)
+        const totalPayments = payments.length
+        const byBank = new Map<string, number>()
+        payments.forEach(p => {
+          const key = (p.bank_name || 'Bank Transfer')
+          byBank.set(key, (byBank.get(key) ?? 0) + 1)
+        })
+        const distribution = Array.from(byBank.entries()).map(([label, cnt]) => ({
+          label,
+          percent: totalPayments > 0 ? Math.round((cnt / totalPayments) * 100) : 0,
+        }))
+        setPaymentDistribution(distribution.length > 0 ? distribution : [{ label: 'Bank Transfer', percent: 100 }])
+      } catch (e: unknown) {
+        console.error('Failed to load reports:', e)
+        setErrorMsg(e instanceof Error ? e.message : 'Gagal memuat laporan')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchReports()
+  }, [supabase,periodFilter, dateRange.start, dateRange.end])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -183,15 +357,30 @@ export default function AdminReports() {
   // Calculate summary stats
   const totalRevenue = salesData.reduce((sum, data) => sum + data.revenue, 0)
   const totalOrders = salesData.reduce((sum, data) => sum + data.orders, 0)
-  const totalCustomers = salesData.length > 0 ? Math.max(...salesData.map(d => d.customers)) : 0
+  const totalCustomers = customerData.length
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
-  const profitMargin = financialData[0]?.profitMargin || 0
+  const profitMargin = totalRevenue > 0 ? 100 : 0
 
-  // Calculate growth rates (mock)
-  const revenueGrowth = 12.5
-  const ordersGrowth = 8.3
-  const customersGrowth = 15.2
-  const profitGrowth = 7.8
+  // Growth vs previous period
+  const revenueGrowth = (() => {
+    // previous total revenue approximated using the first half vs second half
+    if (salesData.length < 2) return 0
+    const mid = Math.floor(salesData.length / 2)
+    const prev = salesData.slice(0, mid).reduce((s, d) => s + d.revenue, 0)
+    const curr = salesData.slice(mid).reduce((s, d) => s + d.revenue, 0)
+    if (prev === 0) return 0
+    return Math.round(((curr - prev) / prev) * 100)
+  })()
+  const ordersGrowth = (() => {
+    if (salesData.length < 2) return 0
+    const mid = Math.floor(salesData.length / 2)
+    const prev = salesData.slice(0, mid).reduce((s, d) => s + d.orders, 0)
+    const curr = salesData.slice(mid).reduce((s, d) => s + d.orders, 0)
+    if (prev === 0) return 0
+    return Math.round(((curr - prev) / prev) * 100)
+  })()
+  const customersGrowth = customerData.length > 1 ? 0 : 0
+  const profitGrowth = profitMargin
 
   return (
     <div className="w-full space-y-4">
@@ -212,6 +401,17 @@ export default function AdminReports() {
       </div>
 
       <div id="reports-content">
+
+      {loading && (
+        <div className="p-3 text-sm text-blue-700 bg-blue-50 rounded">
+          Memuat data laporan...
+        </div>
+      )}
+      {errorMsg && (
+        <div className="p-3 text-sm text-red-700 bg-red-50 rounded">
+          {errorMsg}
+        </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -515,18 +715,17 @@ export default function AdminReports() {
             <CardContent className="p-4">
               <div className="h-48 sm:h-64 overflow-x-auto">
                 <div className="min-w-[640px] flex items-end justify-between gap-2">
-                  {[45, 52, 38, 61, 48, 55, 67].map((count, index) => {
-                    const maxCount = Math.max(...[45, 52, 38, 61, 48, 55, 67])
+                  {(monthlyCustomers.length > 0 ? monthlyCustomers.map(mc => mc.count) : [0]).map((count, index) => {
+                    const maxCount = Math.max(...(monthlyCustomers.length > 0 ? monthlyCustomers.map(mc => mc.count) : [1]))
                     const barBaseHeight = compact ? 140 : 200
                     const height = (count / maxCount) * barBaseHeight
-                    const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan']
                     return (
                       <div key={index} className="flex flex-col items-center flex-1">
                         <div
                           className="w-full bg-gradient-to-t from-purple-500 to-purple-300 rounded-t transition-all duration-300 hover:from-purple-600 hover:to-purple-400"
                           style={{ height: `${height}px` }}
                         ></div>
-                        <div className="text-xs text-gray-500 mt-2">{months[index]}</div>
+                        <div className="text-xs text-gray-500 mt-2">{monthlyCustomers[index]?.month ?? ''}</div>
                         <div className="text-xs font-semibold text-gray-700">{count}</div>
                       </div>
                     )
@@ -547,27 +746,38 @@ export default function AdminReports() {
               </CardHeader>
               <CardContent className="p-4">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                      <span className="text-sm">Pelanggan Baru</span>
-                    </div>
-                    <span className="font-semibold">25%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-green-500 rounded"></div>
-                      <span className="text-sm">Pelanggan Reguler</span>
-                    </div>
-                    <span className="font-semibold">60%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-purple-500 rounded"></div>
-                      <span className="text-sm">Pelanggan VIP</span>
-                    </div>
-                    <span className="font-semibold">15%</span>
-                  </div>
+                  {(() => {
+                    const total = customerData.length || 1
+                    const countNew = customerData.filter(c => c.segment === 'new').length
+                    const countRegular = customerData.filter(c => c.segment === 'regular').length
+                    const countVip = customerData.filter(c => c.segment === 'vip').length
+                    const pct = (n: number) => Math.round((n / total) * 100)
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                            <span className="text-sm">Pelanggan Baru</span>
+                          </div>
+                          <span className="font-semibold">{pct(countNew)}%</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-green-500 rounded"></div>
+                            <span className="text-sm">Pelanggan Reguler</span>
+                          </div>
+                          <span className="font-semibold">{pct(countRegular)}%</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-purple-500 rounded"></div>
+                            <span className="text-sm">Pelanggan VIP</span>
+                          </div>
+                          <span className="font-semibold">{pct(countVip)}%</span>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </div>
               </CardContent>
             </Card>
@@ -677,27 +887,26 @@ export default function AdminReports() {
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Payment Methods</CardTitle>
-                <CardDescription>
-                  Distribusi metode pembayaran
-                </CardDescription>
-              </CardHeader>
+            <CardHeader>
+              <CardTitle>Payment Methods</CardTitle>
+              <CardDescription>
+                Distribusi metode pembayaran
+              </CardDescription>
+            </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                    <span className="text-sm">Bank Transfer</span>
+                {paymentDistribution.length === 0 && (
+                  <div className="text-sm text-gray-500">Belum ada pembayaran terverifikasi pada periode ini</div>
+                )}
+                {paymentDistribution.map((p) => (
+                  <div key={p.label} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                      <span className="text-sm">{p.label}</span>
+                    </div>
+                    <span className="font-semibold">{p.percent}%</span>
                   </div>
-                  <span className="font-semibold">100%</span>
-                </div>
-                <div className="text-center py-8 text-gray-500">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full"></div>
-                  </div>
-                  <p className="text-sm">Semua transaksi menggunakan Bank Transfer</p>
-                </div>
+                ))}
               </div>
             </CardContent>
             </Card>

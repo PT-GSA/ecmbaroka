@@ -1,6 +1,5 @@
-'use client'
-
-import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/server'
+import { Database } from '@/types/database'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +26,7 @@ interface Order {
   shipping_address: string
   phone?: string
   notes?: string
+  user_id: string
   user_profiles?: {
     full_name: string
     phone: string
@@ -34,188 +34,120 @@ interface Order {
   order_items: OrderItem[]
 }
 
-export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
+type UserProfileLite = Pick<Database['public']['Tables']['user_profiles']['Row'], 'id' | 'full_name' | 'phone'>
 
-  useEffect(() => {
-    // Mock data untuk demo
-    const mockOrders: Order[] = [
-      {
-        id: 'ORD001',
-        created_at: '2024-01-15T10:30:00Z',
-        status: 'completed',
-        total_amount: 250000,
-        shipping_address: 'Jl. Sudirman No. 123, Jakarta Selatan',
-        phone: '+62 812-3456-7890',
-        notes: 'Mohon dikirim pagi hari',
-        user_profiles: {
-          full_name: 'John Doe',
-          phone: '+62 812-3456-7890'
-        },
-        order_items: [
-          {
-            id: '1',
-            quantity: 2,
-            price_at_purchase: 25000,
-            products: {
-              name: 'Susu Steril 1L',
-              price: 25000
-            }
-          },
-          {
-            id: '2',
-            quantity: 3,
-            price_at_purchase: 15000,
-            products: {
-              name: 'Susu Pasteurisasi 500ml',
-              price: 15000
-            }
-          }
-        ]
-      },
-      {
-        id: 'ORD002',
-        created_at: '2024-01-14T14:20:00Z',
-        status: 'processing',
-        total_amount: 180000,
-        shipping_address: 'Jl. Thamrin No. 456, Jakarta Pusat',
-        phone: '+62 813-4567-8901',
-        user_profiles: {
-          full_name: 'Jane Smith',
-          phone: '+62 813-4567-8901'
-        },
-        order_items: [
-          {
-            id: '3',
-            quantity: 4,
-            price_at_purchase: 20000,
-            products: {
-              name: 'Susu Organik 1L',
-              price: 20000
-            }
-          },
-          {
-            id: '4',
-            quantity: 2,
-            price_at_purchase: 50000,
-            products: {
-              name: 'Susu Premium 1L',
-              price: 50000
-            }
-          }
-        ]
-      },
-      {
-        id: 'ORD003',
-        created_at: '2024-01-13T09:15:00Z',
-        status: 'pending',
-        total_amount: 95000,
-        shipping_address: 'Jl. Gatot Subroto No. 789, Jakarta Barat',
-        phone: '+62 814-5678-9012',
-        user_profiles: {
-          full_name: 'Bob Johnson',
-          phone: '+62 814-5678-9012'
-        },
-        order_items: [
-          {
-            id: '5',
-            quantity: 1,
-            price_at_purchase: 25000,
-            products: {
-              name: 'Susu Steril 1L',
-              price: 25000
-            }
-          },
-          {
-            id: '6',
-            quantity: 2,
-            price_at_purchase: 35000,
-            products: {
-              name: 'Susu Organik 1L',
-              price: 35000
-            }
-          }
-        ]
-      },
-      {
-        id: 'ORD004',
-        created_at: '2024-01-12T16:45:00Z',
-        status: 'shipped',
-        total_amount: 320000,
-        shipping_address: 'Jl. Kebon Jeruk No. 321, Jakarta Barat',
-        phone: '+62 815-6789-0123',
-        user_profiles: {
-          full_name: 'Alice Brown',
-          phone: '+62 815-6789-0123'
-        },
-        order_items: [
-          {
-            id: '7',
-            quantity: 3,
-            price_at_purchase: 25000,
-            products: {
-              name: 'Susu Steril 1L',
-              price: 25000
-            }
-          },
-          {
-            id: '8',
-            quantity: 2,
-            price_at_purchase: 35000,
-            products: {
-              name: 'Susu Organik 1L',
-              price: 35000
-            }
-          },
-          {
-            id: '9',
-            quantity: 1,
-            price_at_purchase: 50000,
-            products: {
-              name: 'Susu Premium 1L',
-              price: 50000
-            }
-          }
-        ]
-      },
-      {
-        id: 'ORD005',
-        created_at: '2024-01-11T11:30:00Z',
-        status: 'verified',
-        total_amount: 150000,
-        shipping_address: 'Jl. Senayan No. 654, Jakarta Selatan',
-        phone: '+62 816-7890-1234',
-        user_profiles: {
-          full_name: 'Charlie Wilson',
-          phone: '+62 816-7890-1234'
-        },
-        order_items: [
-          {
-            id: '10',
-            quantity: 2,
-            price_at_purchase: 25000,
-            products: {
-              name: 'Susu Steril 1L',
-              price: 25000
-            }
-          },
-          {
-            id: '11',
-            quantity: 2,
-            price_at_purchase: 50000,
-            products: {
-              name: 'Susu Premium 1L',
-              price: 50000
-            }
-          }
-        ]
+export default async function AdminOrdersPage() {
+  const supabase = await createClient()
+  // Auth guard: ensure only admin can access
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return (
+      <div className="text-center py-12">
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Butuh Login</h1>
+        <p className="text-gray-600 mb-6">Silakan login untuk mengakses halaman ini.</p>
+        <Button asChild>
+          <Link href="/login">Login</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const typedProfile = profile as Database['public']['Tables']['user_profiles']['Row'] | null
+  if (!typedProfile || typedProfile.role !== 'admin') {
+    return (
+      <div className="text-center py-12">
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Akses Ditolak</h1>
+        <p className="text-gray-600">Anda tidak memiliki akses ke halaman ini.</p>
+      </div>
+    )
+  }
+
+  const ordersQuery = await supabase
+    .from('orders')
+    .select(`
+      id,
+      created_at,
+      status,
+      total_amount,
+      shipping_address,
+      phone,
+      notes,
+      user_id,
+      order_items (
+        id,
+        quantity,
+        price_at_purchase,
+        products (
+          name,
+          price
+        )
+      )
+    `)
+    .order('created_at', { ascending: false })
+
+  const { data: ordersData, error } = ordersQuery
+  if (error) {
+    console.error('Error fetching orders:', error)
+  }
+
+  const rawOrders = (ordersData ?? []) as (Database['public']['Tables']['orders']['Row'] & {
+    order_items: (Database['public']['Tables']['order_items']['Row'] & {
+      products: Pick<Database['public']['Tables']['products']['Row'], 'name' | 'price'>
+    })[]
+  })[]
+
+  const userIds: string[] = Array.from(
+    new Set(
+      rawOrders
+        .map(o => o.user_id)
+        .filter((uid): uid is string => typeof uid === 'string' && uid.length > 0)
+    )
+  )
+  const profileMap = new Map<string, { full_name: string; phone: string | null }>()
+  if (userIds.length > 0) {
+    const profileRes = await supabase
+      .from('user_profiles')
+      .select('id, full_name, phone')
+      .in('id', userIds)
+    const profileError = profileRes.error
+    const profiles = (profileRes.data ?? []) as UserProfileLite[]
+    if (profileError) {
+      console.error('Error fetching profiles:', profileError)
+    }
+    profiles.forEach((p) => {
+      profileMap.set(p.id, { full_name: p.full_name ?? '', phone: p.phone ?? null })
+    })
+  }
+
+  const orders: Order[] = rawOrders.map(o => ({
+    id: o.id,
+    created_at: o.created_at,
+    status: o.status,
+    total_amount: Number(o.total_amount),
+    shipping_address: o.shipping_address,
+    phone: o.phone ?? undefined,
+    notes: o.notes ?? undefined,
+    user_id: o.user_id,
+    user_profiles: profileMap.has(o.user_id) ? {
+      full_name: profileMap.get(o.user_id)!.full_name,
+      phone: profileMap.get(o.user_id)!.phone ?? ''
+    } : undefined,
+    order_items: o.order_items.map(oi => ({
+      id: oi.id,
+      quantity: oi.quantity,
+      price_at_purchase: Number(oi.price_at_purchase),
+      products: {
+        name: oi.products?.name ?? 'Produk',
+        price: Number(oi.products?.price ?? oi.price_at_purchase)
       }
-    ]
-
-    setOrders(mockOrders)
-    setLoading(false)
-  }, [])
+    }))
+  }))
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -232,14 +164,7 @@ export default function AdminOrdersPage() {
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <span className="ml-2 text-gray-600">Memuat pesanan...</span>
-      </div>
-    )
-  }
+  // SSR: no loading spinner needed
 
   return (
     <div className="space-y-6">

@@ -44,6 +44,17 @@ export default function OrderStatusUpdate({ orderId, currentStatus }: OrderStatu
         return
       }
 
+      // Create notification for customer via secure API (order status)
+      try {
+        await fetch('/api/order-status-notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId, status: newStatus }),
+        })
+      } catch {
+        // silent fail; notification is non-blocking for admin flow
+      }
+
       const statusLabel = statusOptions.find(opt => opt.value === newStatus)?.label || newStatus
       setSuccess(`Status pesanan berhasil diperbarui menjadi "${statusLabel}"`)
       

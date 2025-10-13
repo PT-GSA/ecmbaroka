@@ -157,13 +157,13 @@ export default async function OrdersPage() {
                 {/* Action Buttons */}
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/orders/${order.id}`}>
+                    <Link href={`/customer-orders/${order.id}`}>
                       Lihat Detail
                     </Link>
                   </Button>
                   {order.status === 'pending' && (
                     <Button size="sm" asChild>
-                      <Link href={`/orders/${order.id}`}>
+                      <Link href={`/customer-orders/${order.id}`}>
                         Upload Bukti Transfer
                       </Link>
                     </Button>

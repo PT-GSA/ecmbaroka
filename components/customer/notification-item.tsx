@@ -9,7 +9,8 @@ import {
   CreditCard, 
   Star, 
   ExternalLink,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react'
 
 interface NotificationItemProps {
@@ -21,6 +22,7 @@ interface NotificationItemProps {
   isRead: boolean
   createdAt: string
   onMarkAsRead?: (id: string) => void
+  loading?: boolean
 }
 
 export default function NotificationItem({
@@ -31,7 +33,8 @@ export default function NotificationItem({
   link,
   isRead,
   createdAt,
-  onMarkAsRead
+  onMarkAsRead,
+  loading = false
 }: NotificationItemProps) {
   const getTypeIcon = () => {
     switch (type) {
@@ -114,8 +117,13 @@ export default function NotificationItem({
                     size="sm"
                     onClick={() => onMarkAsRead(id)}
                     className="h-8 w-8 p-0"
+                    disabled={loading}
                   >
-                    <Check className="h-4 w-4" />
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
                   </Button>
                 )}
                 {link && (

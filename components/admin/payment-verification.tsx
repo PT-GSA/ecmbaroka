@@ -73,6 +73,17 @@ export default function PaymentVerification({ payments, orderId }: PaymentVerifi
       const statusLabel = status === 'verified' ? 'Terverifikasi' : 'Ditolak'
       setSuccess(`Pembayaran berhasil ${statusLabel.toLowerCase()}`)
       setAdminNotes('')
+
+      // Create notification for customer via secure API
+      try {
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId, status, adminNotes }),
+        })
+      } catch {
+        // silent fail; notification is non-blocking for admin flow
+      }
       
       // Refresh the page after 2 seconds
       setTimeout(() => {

@@ -59,10 +59,40 @@ export default async function TransactionHistoryPage() {
     created_at: p.created_at,
   }))
 
+  const extractPathFromPublicUrl = (url: string) => {
+    try {
+      const pathname = new URL(url).pathname
+      const marker = '/payment-proofs/'
+      const idx = pathname.indexOf(marker)
+      if (idx === -1) return null
+      return pathname.substring(idx + marker.length)
+    } catch {
+      return null
+    }
+  }
+
+  let transactionsWithSignedUrls = transactions
+  if (transactions.length > 0) {
+    transactionsWithSignedUrls = await Promise.all(
+      transactions.map(async (t) => {
+        if (!t.proof_image_url) return t
+        const path = extractPathFromPublicUrl(t.proof_image_url)
+        if (!path) return t
+        const { data } = await supabase.storage
+          .from('payment-proofs')
+          .createSignedUrl(path, 60 * 60)
+        return {
+          ...t,
+          proof_image_url: data?.signedUrl ?? t.proof_image_url,
+        }
+      })
+    )
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Riwayat Transaksi</h1>
-      <TransactionTable transactions={transactions} />
+      <TransactionTable transactions={transactionsWithSignedUrls} />
     </div>
   )
 }
