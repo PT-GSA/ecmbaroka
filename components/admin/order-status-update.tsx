@@ -122,7 +122,7 @@ export default function OrderStatusUpdate({ orderId, currentStatus }: OrderStatu
                   key={option.value}
                   variant={isCurrent ? "default" : "outline"}
                   size="sm"
-                  className="justify-start h-auto p-3"
+                  className="justify-start h-auto p-3 hover:bg-green-500 hover:text-white"
                   disabled={!canUpdate || loading || isCurrent}
                   onClick={() => updateStatus(option.value)}
                 >

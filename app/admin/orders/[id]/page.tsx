@@ -378,7 +378,7 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button asChild className="w-full">
+              <Button asChild className="w-full hover:bg-red-500 hover:text-white">
                 <Link href={`/admin/orders/${order.id}/invoice`}>
                   <FileText className="mr-2 h-4 w-4" />
                   Generate Invoice

@@ -241,8 +241,8 @@ export default async function AdminProductCreatePage({ searchParams }: PageProps
                 </div>
               </div>
             </div>
-            <div className="flex justify-end">
-              <Button type="submit">
+            <div className="flex justify-start">
+              <Button type="submit" className="hover:bg-red-500 hover:text-white">
                 <Save className="mr-2 h-4 w-4" /> Simpan & Lanjutkan
               </Button>
             </div>

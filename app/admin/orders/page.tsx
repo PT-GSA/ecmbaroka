@@ -250,7 +250,7 @@ export default async function AdminOrdersPage() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild className="hover:bg-green-500 hover:text-white">
                     <Link href={`/admin/orders/${order.id}`}>
                       <Eye className="mr-2 h-4 w-4" />
                       Lihat Detail

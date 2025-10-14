@@ -202,7 +202,7 @@ export default async function AdminAffiliatesPage({
                       <Label htmlFor={`commission-${a.id}`}>Komisi (%)</Label>
                       <Input id={`commission-${a.id}`} name="commission_rate" type="number" step="0.01" min="0" max="100" defaultValue={typeof a.commission_rate === 'number' ? a.commission_rate : 0} placeholder="contoh: 10 atau 12.5" />
                     </div>
-                    <div className="flex items-end">
+                    <div className="flex items-end hover:bg-gray-500 cursor-pointer">
                       <Button type="submit">Simpan</Button>
                     </div>
                   </form>

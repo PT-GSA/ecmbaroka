@@ -348,7 +348,7 @@ export default async function AdminProductDetailPage({ params, searchParams }: P
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit">
+                <Button type="submit" className="hover:bg-red-500 hover:text-white">
                   <Save className="mr-2 h-4 w-4" />
                   Simpan Perubahan
                 </Button>

@@ -200,7 +200,7 @@ export default function PaymentVerification({ payments, orderId }: PaymentVerifi
                     size="sm"
                     onClick={() => verifyPayment(payment.id, 'verified')}
                     disabled={loading === payment.id}
-                    className="flex-1"
+                    className="flex-1 hover:bg-green-500 hover:text-white"
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
                     {loading === payment.id ? 'Memproses...' : 'Verifikasi'}
@@ -210,7 +210,7 @@ export default function PaymentVerification({ payments, orderId }: PaymentVerifi
                     variant="destructive"
                     onClick={() => verifyPayment(payment.id, 'rejected')}
                     disabled={loading === payment.id}
-                    className="flex-1"
+                    className="flex-1 hover:bg-red-500 hover:text-white"
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     {loading === payment.id ? 'Memproses...' : 'Tolak'}

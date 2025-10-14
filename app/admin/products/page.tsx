@@ -62,7 +62,7 @@ export default async function AdminProductsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Kelola Produk</h1>
           <p className="text-gray-600">Mengelola katalog produk susu Baroka</p>
         </div>
-        <Button asChild>
+        <Button asChild className="hover:bg-green-500 hover:text-white">
           <Link href="/admin/products/new">
             <Plus className="mr-2 h-4 w-4" />
             Tambah Produk
@@ -102,9 +102,11 @@ export default async function AdminProductsPage() {
             redirect('/admin/products')
           }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-600">Pilih produk lalu klik &quot;Hapus Terpilih&quot;</p>
-            <BulkDeleteDialog formId="bulk-delete-form" />
+          <div className="group flex items-center justify-between mb-4 rounded-md p-2 transition-colors hover:bg-gray-50">
+            <p className="text-sm text-gray-600 transition-colors group-hover:text-gray-800">Pilih produk lalu klik &quot;Hapus Terpilih&quot;</p>
+            <div className="transition-transform group-hover:scale-[1.02]">
+              <BulkDeleteDialog formId="bulk-delete-form" />
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {products.map((product) => (
@@ -169,13 +171,13 @@ export default async function AdminProductsPage() {
                     <Separator />
                     
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" asChild className="flex-1">
+                      <Button variant="outline" size="sm" asChild className="flex-1 hover:bg-green-500">
                         <Link href={`/admin/products/${product.id}`}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </Link>
                       </Button>
-                      <Button variant="outline" size="sm" asChild className="flex-1">
+                      <Button variant="outline" size="sm" asChild className="flex-1 hover:bg-green-500">
                         <Link href={`/products/${product.id}`}>
                           <Eye className="mr-2 h-4 w-4" />
                           Lihat
