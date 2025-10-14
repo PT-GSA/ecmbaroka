@@ -72,6 +72,11 @@ export default async function NewAffiliatePage() {
               </select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="commission_rate">Komisi (%)</Label>
+              <Input id="commission_rate" name="commission_rate" type="number" step="0.01" min="0" max="100" placeholder="contoh: 10 atau 12.5" />
+            </div>
+
             <div className="flex justify-end gap-3">
               <Button type="submit">Simpan Affiliate</Button>
             </div>

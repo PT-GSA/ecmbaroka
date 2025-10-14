@@ -287,13 +287,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 {formatCurrency(getTierPriceForQty(5))}
               </span>
               <Badge variant="outline">
-                Preorder hanya, harga per karton (harga 5 karton ditampilkan)
+                Order hanya, harga per karton (harga 5 karton ditampilkan)
               </Badge>
             </div>
             {/* Alert preorder per produk */}
             <Alert className="bg-yellow-50 border-yellow-200 text-yellow-900">
               <AlertDescription>
-                Khusus preorder: minimal 5 karton per produk.
+                Order minimal 5 karton per produk.
               </AlertDescription>
             </Alert>
             {/* Deskripsi dipindahkan ke bawah gallery untuk tampilan lebih rapi */}
@@ -315,7 +315,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
               <div className="flex items-center gap-3">
                 <ShoppingCart className="h-5 w-5 text-primary" />
-                <span className="text-sm">Sistem preorder yang mudah</span>
+                <span className="text-sm">Sistem order yang mudah</span>
               </div>
             </div>
           </div>

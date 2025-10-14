@@ -67,11 +67,11 @@ export default async function ProductsPage() {
       
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Banner global preorder */}
+        {/* Banner global order */}
         <div className="mb-6">
           <Alert className="bg-yellow-50 border-yellow-200 text-yellow-900">
             <Megaphone className="h-4 w-4" />
-      <AlertDescription>Khusus Preorder, minimal 5 karton per produk</AlertDescription>
+            <AlertDescription>Order minimal 5 karton per produk</AlertDescription>
           </Alert>
         </div>
         <div className="mb-8">

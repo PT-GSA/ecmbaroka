@@ -1,6 +1,6 @@
 # Susu Baroka - Website Preorder Susu
 
-Website preorder Susu Steril dengan Next.js, Bun, dan Supabase. Fitur lengkap untuk customer dan admin dengan sistem pembayaran manual dan pengiriman manual.
+Website order Susu Steril dengan Next.js, Bun, dan Supabase. Fitur lengkap untuk customer dan admin dengan sistem pembayaran manual dan pengiriman manual.
 
 ## 🚀 Fitur Utama
 

@@ -184,10 +184,10 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ShoppingCart className="h-5 w-5" />
-          Preorder Sekarang
+          Order Sekarang
         </CardTitle>
         <CardDescription>
-          Website khusus preorder. Minimal 5 karton per produk.
+          Website khusus order. Minimal 5 karton per produk.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -254,19 +254,19 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
         {/* Action Buttons */}
         <div className="space-y-2">
           <Button 
-            className="w-full" 
-            onClick={handleBuyNow}
-            disabled={loading}
-          >
-            {loading ? 'Memproses...' : 'Beli Sekarang'}
-          </Button>
-          <Button 
             variant="outline" 
-            className="w-full" 
+            className="w-full hover:bg-red-500 hover:text-white" 
             onClick={handleAddToCart}
             disabled={loading}
           >
             Tambah ke Keranjang
+          </Button>
+          <Button 
+            className="w-full hover:bg-red-500 hover:text-white" 
+            onClick={handleBuyNow}
+            disabled={loading}
+          >
+            {loading ? 'Memproses...' : 'Beli Sekarang'}
           </Button>
         </div>
       </CardContent>

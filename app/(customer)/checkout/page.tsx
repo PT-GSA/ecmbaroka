@@ -199,7 +199,7 @@ function CheckoutContent() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full hover:bg-red-500 hover:text-white" disabled={loading}>
                   {loading ? 'Menyimpan...' : 'Lanjut ke Pembayaran'}
                 </Button>
               </form>

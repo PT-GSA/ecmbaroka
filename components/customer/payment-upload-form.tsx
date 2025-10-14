@@ -105,6 +105,16 @@ export default function PaymentUploadForm({ orderId }: PaymentUploadFormProps) {
         return
       }
 
+      // Trigger commission attribution for 'paid' status (silent)
+      try {
+        await fetch(`/api/admin/orders/${orderId}/commission`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+      } catch {
+        // ignore errors; commission will also be attributed when verified
+      }
+
       setSuccess('Bukti transfer berhasil diupload! Tim kami akan memverifikasi pembayaran Anda.')
       
       // Refresh the page after 2 seconds

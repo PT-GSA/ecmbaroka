@@ -69,9 +69,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           disabled={!product.is_active || product.stock === 0}
           asChild
         >
-          <Link href={`/products/${product.id}`}>
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            {!product.is_active || product.stock === 0 ? 'Tidak Tersedia' : 'Preorder'}
+          <Link 
+            href={`/products/${product.id}`} 
+            aria-label={!product.is_active || product.stock === 0 ? 'Produk tidak tersedia' : 'Order produk'}
+            className="inline-flex items-center gap-2 hover:bg-red-500 hover:text-white"
+          >
+            <ShoppingCart className="h-4 w-4 text-primary-foreground " aria-hidden="true" />
+            <span className={!product.is_active || product.stock === 0 ? 'opacity-80' : 'font-semibold tracking-wide'}>
+              {!product.is_active || product.stock === 0 ? 'Tidak Tersedia' : 'Order'}
+            </span>
           </Link>
         </Button>
       </CardContent>

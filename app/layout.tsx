@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Susu Baroka - Preorder Susu Steril",
-  description: "Preorder Susu Steril berkualitas tinggi dari Susu Baroka. Sistem pembayaran manual dan pengiriman terpercaya.",
+  title: "Susu Baroka - Order Susu Steril",
+  description: "Order Susu Steril berkualitas tinggi dari Susu Baroka. Sistem pembayaran manual dan pengiriman terpercaya.",
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },

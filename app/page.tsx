@@ -59,7 +59,7 @@ export default async function HomePage() {
                   Susu Steril Baroka
                 </h1>
                 <p className="text-lg text-white/90 mb-8 max-w-2xl">
-                  Preorder susu steril import berkualitas tinggi langsung dari peternakan. Pengalaman belanja elegan, aman, dan mudah.
+                  Order susu steril import berkualitas tinggi langsung dari peternakan. Pengalaman belanja elegan, aman, dan mudah.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button size="lg" className="bg-white text-neutral-900 hover:bg-white/90" asChild>
@@ -169,7 +169,7 @@ export default async function HomePage() {
             <Card className="border-neutral-200">
               <CardHeader className="text-center">
                 <ShoppingCart className="h-10 w-10 text-neutral-800 mx-auto mb-2" />
-                <CardTitle className="text-base">Preorder Mudah</CardTitle>
+                <CardTitle className="text-base">Order Mudah</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
                 <CardDescription>Proses elegan dan cepat</CardDescription>
@@ -182,7 +182,7 @@ export default async function HomePage() {
       {/* CTA sederhana */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-semibold text-neutral-900 mb-4">Siap Preorder?</h2>
+          <h2 className="text-3xl font-semibold text-neutral-900 mb-4">Siap Order?</h2>
           <p className="text-neutral-600 mb-8">Dapatkan Susu Steril terbaik untuk keluarga Anda.</p>
           <Button size="lg" className="bg-neutral-900 hover:bg-neutral-800 text-white px-8" asChild>
             <Link href="/products">

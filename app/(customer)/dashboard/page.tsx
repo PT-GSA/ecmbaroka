@@ -135,7 +135,7 @@ export default async function CustomerDashboard() {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Aksi Cepat</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickActionCard
-            title="Preorder Produk"
+            title="Order Produk"
             description="Lihat dan pesan produk susu Baroka"
             icon={Plus}
             href="/products"

@@ -55,6 +55,18 @@ export default function OrderStatusUpdate({ orderId, currentStatus }: OrderStatu
         // silent fail; notification is non-blocking for admin flow
       }
 
+      // Attribute commission when moving to paid/verified (silent)
+      if (['paid', 'verified'].includes(newStatus)) {
+        try {
+          await fetch(`/api/admin/orders/${orderId}/commission`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
+        } catch {
+          // ignore commission errors; does not block status update
+        }
+      }
+
       const statusLabel = statusOptions.find(opt => opt.value === newStatus)?.label || newStatus
       setSuccess(`Status pesanan berhasil diperbarui menjadi "${statusLabel}"`)
       

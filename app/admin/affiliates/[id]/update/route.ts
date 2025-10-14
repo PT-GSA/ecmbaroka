@@ -38,6 +38,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   const code = (form.get("code") as string | null) ?? undefined;
   const statusRaw = (form.get("status") as string | null) ?? undefined;
   const visibilityRaw = (form.get("visibility_level") as string | null) ?? undefined;
+  const commissionRaw = (form.get("commission_rate") as string | null) ?? undefined;
 
   type AffiliateUpdate = Database['public']['Tables']['affiliates']['Update'];
   const updatePayload: AffiliateUpdate = {};
@@ -56,6 +57,21 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       updatePayload.visibility_level = visibilityRaw;
     } else {
       return NextResponse.redirect(new URL("/admin/affiliates?error=invalid_visibility", req.url));
+    }
+  }
+
+  if (commissionRaw !== undefined) {
+    const trimmed = commissionRaw?.toString().trim();
+    if (trimmed && trimmed.length > 0) {
+      const commission = Number(trimmed);
+      if (Number.isNaN(commission) || commission < 0 || commission > 100) {
+        return NextResponse.redirect(new URL("/admin/affiliates?error=invalid_commission", req.url));
+      }
+      // store as numeric percentage
+      updatePayload.commission_rate = commission;
+    } else {
+      // empty input sets commission to 0
+      updatePayload.commission_rate = 0;
     }
   }
 

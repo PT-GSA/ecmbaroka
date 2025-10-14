@@ -68,6 +68,16 @@ export default function PaymentVerification({ payments, orderId }: PaymentVerifi
           setError('Gagal memperbarui status pesanan')
           return
         }
+
+        // Trigger commission attribution for the order (silent, non-blocking)
+        try {
+          await fetch(`/api/admin/orders/${orderId}/commission`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
+        } catch {
+          // ignore commission attribution errors in admin verification flow
+        }
       }
 
       const statusLabel = status === 'verified' ? 'Terverifikasi' : 'Ditolak'

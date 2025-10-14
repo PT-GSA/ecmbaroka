@@ -58,6 +58,9 @@ export interface Database {
           phone: string
           notes: string | null
           affiliate_id: string | null
+          commission_rate: number
+          commission_amount: number
+          commission_calculated_at: string | null
           created_at: string
         }
         Insert: {
@@ -69,6 +72,9 @@ export interface Database {
           phone: string
           notes?: string | null
           affiliate_id?: string | null
+          commission_rate?: number
+          commission_amount?: number
+          commission_calculated_at?: string | null
           created_at?: string
         }
         Update: {
@@ -80,6 +86,9 @@ export interface Database {
           phone?: string
           notes?: string | null
           affiliate_id?: string | null
+          commission_rate?: number
+          commission_amount?: number
+          commission_calculated_at?: string | null
           created_at?: string
         }
       }
@@ -246,6 +255,7 @@ export interface Database {
           email: string | null
           status: 'active' | 'inactive'
           visibility_level: 'basic' | 'enhanced'
+          commission_rate: number
           created_at: string
         }
         Insert: {
@@ -256,6 +266,7 @@ export interface Database {
           email?: string | null
           status?: 'active' | 'inactive'
           visibility_level?: 'basic' | 'enhanced'
+          commission_rate?: number
           created_at?: string
         }
         Update: {
@@ -266,6 +277,7 @@ export interface Database {
           email?: string | null
           status?: 'active' | 'inactive'
           visibility_level?: 'basic' | 'enhanced'
+          commission_rate?: number
           created_at?: string
         }
       }

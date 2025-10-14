@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import CustomerSidebar from '@/components/customer/sidebar'
 
 export const metadata: Metadata = {
-  title: 'Susu Baroka - Preorder Susu Steril',
-  description: 'Preorder Susu Steril berkualitas tinggi dari Susu Baroka',
+  title: 'Susu Baroka - Order Susu Steril',
+  description: 'Order Susu Steril berkualitas tinggi dari Susu Baroka',
 }
 
 export default function CustomerLayout({

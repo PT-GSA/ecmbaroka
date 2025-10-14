@@ -227,11 +227,14 @@ export default function AdminReports() {
           const name = namesMap.get(uid)?.name ?? uid
           const ordersCount = data.orders.length
           const totalSpent = data.payments.reduce((sum, p) => sum + Number(p.amount), 0)
-          const lastOrder = data.orders.sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.created_at ?? ''
+          const lastOrder = data.orders
+            .sort((orderA, orderB) => orderB.created_at.localeCompare(orderA.created_at))[0]?.created_at ?? ''
           const segment: CustomerData['segment'] = ordersCount > 10 ? 'vip' : ordersCount > 3 ? 'regular' : 'new'
           return { id: uid, name, orders: ordersCount, totalSpent, lastOrder: lastOrder.slice(0,10), segment }
         })
-        setCustomerData(customersComputed.sort((a, b) => b.totalSpent - a.totalSpent))
+        setCustomerData(
+          customersComputed.sort((customerA, customerB) => customerB.totalSpent - customerA.totalSpent)
+        )
 
         // Financial monthly (last 6 months)
         const now = new Date()

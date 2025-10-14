@@ -321,6 +321,13 @@ export default function AdminPayments() {
                                     .from('orders')
                                     .update({ status: 'verified' })
                                     .eq('id', payment.order_id)
+                                  // trigger commission attribution (silent)
+                                  try {
+                                    await fetch(`/api/admin/orders/${payment.order_id}/commission`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' }
+                                    })
+                                  } catch {}
                                   // send notification
                                   try {
                                     await fetch('/api/notifications', {

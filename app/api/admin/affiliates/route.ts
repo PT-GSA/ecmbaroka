@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
   const name = (form.get('name') as string | null)?.trim() || null
   const visibility = (form.get('visibility_level') as string | null) || 'basic'
   const status = (form.get('status') as string | null) || 'active'
+  const commissionRaw = (form.get('commission_rate') as string | null) ?? null
 
   if (!email || !code) {
     return NextResponse.redirect(new URL('/admin/affiliates/new?error=missing_fields', req.url))
@@ -57,6 +58,14 @@ export async function POST(req: NextRequest) {
     email,
     status: status as Database['public']['Tables']['affiliates']['Row']['status'],
     visibility_level: visibility as Database['public']['Tables']['affiliates']['Row']['visibility_level'],
+    commission_rate: (() => {
+      const v = commissionRaw?.toString().trim()
+      if (v && v.length > 0) {
+        const num = Number(v)
+        if (!Number.isNaN(num) && num >= 0 && num <= 100) return num
+      }
+      return undefined
+    })()
   }
 
   // Work around TS generics inference issues by using a typed builder
