@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { Database } from '@/types/database'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -68,7 +69,8 @@ export default async function AdminOrdersPage() {
     )
   }
 
-  const ordersQuery = await supabase
+  const service = createServiceClient()
+  const ordersQuery = await service
     .from('orders')
     .select(`
       id,
@@ -93,7 +95,7 @@ export default async function AdminOrdersPage() {
 
   const { data: ordersData, error } = ordersQuery
   if (error) {
-    console.error('Error fetching orders:', error)
+    console.error('Error fetching orders:', error?.message || error)
   }
 
   const rawOrders = (ordersData ?? []) as (Database['public']['Tables']['orders']['Row'] & {
@@ -111,14 +113,14 @@ export default async function AdminOrdersPage() {
   )
   const profileMap = new Map<string, { full_name: string; phone: string | null }>()
   if (userIds.length > 0) {
-    const profileRes = await supabase
+    const profileRes = await service
       .from('user_profiles')
       .select('id, full_name, phone')
       .in('id', userIds)
     const profileError = profileRes.error
     const profiles = (profileRes.data ?? []) as UserProfileLite[]
     if (profileError) {
-      console.error('Error fetching profiles:', profileError)
+      console.error('Error fetching profiles:', profileError?.message || profileError)
     }
     profiles.forEach((p) => {
       profileMap.set(p.id, { full_name: p.full_name ?? '', phone: p.phone ?? null })

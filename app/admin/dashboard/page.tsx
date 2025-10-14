@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/types/database'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -27,7 +26,6 @@ export default function AdminDashboard() {
     pendingOrders: 0,
     completedOrders: 0
   })
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   type OrderRow = Pick<Database['public']['Tables']['orders']['Row'], 'id' | 'created_at' | 'status' | 'total_amount'>
@@ -41,89 +39,29 @@ export default function AdminDashboard() {
       setLoading(true)
       setErrorMsg('')
       try {
-        // Orders counts
-        const totalOrdersRes = await supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-        if (totalOrdersRes.error) throw new Error(totalOrdersRes.error.message)
-        const totalOrders = totalOrdersRes.count ?? 0
+        const res = await fetch('/api/admin/stats', { cache: 'no-store' })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({ error: 'Gagal memuat' }))
+          throw new Error(body.error || `Gagal memuat (${res.status})`)
+        }
+        const data: {
+          stats: {
+            totalOrders: number
+            totalProducts: number
+            totalCustomers: number
+            totalRevenue: number
+            pendingOrders: number
+            completedOrders: number
+          }
+          recentOrders: OrderRow[]
+          lowStockProducts: ProductRowSlim[]
+          pendingPaymentsCount: number
+        } = await res.json()
 
-        const pendingOrdersRes = await supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending')
-        if (pendingOrdersRes.error) throw new Error(pendingOrdersRes.error.message)
-        const pendingOrders = pendingOrdersRes.count ?? 0
-
-        const completedOrdersRes = await supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'completed')
-        if (completedOrdersRes.error) throw new Error(completedOrdersRes.error.message)
-        const completedOrders = completedOrdersRes.count ?? 0
-
-        // Products count
-        const productsRes = await supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-        if (productsRes.error) throw new Error(productsRes.error.message)
-        const totalProducts = productsRes.count ?? 0
-
-        // Customers count
-        const customersRes = await supabase
-          .from('user_profiles')
-          .select('id', { count: 'exact', head: true })
-          .eq('role', 'customer')
-        if (customersRes.error) throw new Error(customersRes.error.message)
-        const totalCustomers = customersRes.count ?? 0
-
-        // Total revenue (verified payments)
-        type PaymentRowSlim = Pick<Database['public']['Tables']['payments']['Row'], 'amount' | 'status'>
-        const paymentsRes = await supabase
-          .from('payments')
-          .select('amount, status')
-          .eq('status', 'verified')
-        if (paymentsRes.error) throw new Error(paymentsRes.error.message)
-        const payments = (paymentsRes.data ?? []) as PaymentRowSlim[]
-        const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0)
-
-        setStats({
-          totalOrders,
-          totalProducts,
-          totalCustomers,
-          totalRevenue,
-          pendingOrders,
-          completedOrders,
-        })
-
-        // Recent orders
-        const recentRes = await supabase
-          .from('orders')
-          .select('id, created_at, status, total_amount')
-          .order('created_at', { ascending: false })
-          .limit(3)
-        if (recentRes.error) throw new Error(recentRes.error.message)
-        const recents = (recentRes.data ?? []) as OrderRow[]
-        setRecentOrders(recents)
-
-        // Low stock products (threshold <= 10)
-        const lowStockRes = await supabase
-          .from('products')
-          .select('id, name, stock')
-          .eq('is_active', true)
-          .lte('stock', 10)
-          .order('stock', { ascending: true })
-          .limit(5)
-        if (lowStockRes.error) throw new Error(lowStockRes.error.message)
-        setLowStockProducts((lowStockRes.data ?? []) as ProductRowSlim[])
-
-        // Pending payments needing confirmation
-        const pendingPaymentsRes = await supabase
-          .from('payments')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending')
-        if (pendingPaymentsRes.error) throw new Error(pendingPaymentsRes.error.message)
-        setPendingPaymentsCount(pendingPaymentsRes.count ?? 0)
+        setStats(data.stats)
+        setRecentOrders(data.recentOrders)
+        setLowStockProducts(data.lowStockProducts)
+        setPendingPaymentsCount(data.pendingPaymentsCount)
       } catch (e: unknown) {
         console.error('Failed to load dashboard:', e)
         setErrorMsg(e instanceof Error ? e.message : 'Gagal memuat dashboard')
@@ -133,7 +71,7 @@ export default function AdminDashboard() {
     }
 
     fetchStats()
-  }, [supabase])
+  }, [])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {

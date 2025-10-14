@@ -22,7 +22,8 @@ import {
   ChevronRight,
   Heart,
   Menu,
-  X
+  X,
+  Link2
 } from 'lucide-react'
 
 const navigation = [
@@ -31,6 +32,7 @@ const navigation = [
   { name: 'Pesanan', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Pembayaran', href: '/admin/payments', icon: CreditCard },
   { name: 'Pelanggan', href: '/admin/customers', icon: Users },
+  { name: 'Afiliasi', href: '/admin/affiliates', icon: Link2 },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
   { name: 'Pengaturan', href: '/admin/settings', icon: Settings },
 ]

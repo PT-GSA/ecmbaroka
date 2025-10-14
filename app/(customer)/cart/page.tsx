@@ -120,6 +120,24 @@ export default function CartPage() {
         return
       }
 
+      // Read affiliate cookies (set via /api/affiliate/track)
+      let affiliateId: string | null = null
+      try {
+        // Next.js app router client: read document.cookie in client component
+        const cookieStr = typeof document !== 'undefined' ? document.cookie : ''
+        const cookiesObj = Object.fromEntries(
+          cookieStr
+            .split(';')
+            .map((c) => c.trim())
+            .filter(Boolean)
+            .map((c) => {
+              const [k, ...rest] = c.split('=')
+              return [decodeURIComponent(k), decodeURIComponent(rest.join('='))]
+            })
+        ) as Record<string, string>
+        affiliateId = cookiesObj['afid'] ?? null
+      } catch {}
+
       // Create order
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -129,6 +147,7 @@ export default function CartPage() {
           status: 'pending',
           shipping_address: '', // Will be filled in checkout
           phone: '', // Will be filled in checkout
+          affiliate_id: affiliateId,
         })
         .select()
         .single()

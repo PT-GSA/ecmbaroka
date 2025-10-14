@@ -57,6 +57,7 @@ export interface Database {
           shipping_address: string
           phone: string
           notes: string | null
+          affiliate_id: string | null
           created_at: string
         }
         Insert: {
@@ -67,6 +68,7 @@ export interface Database {
           shipping_address: string
           phone: string
           notes?: string | null
+          affiliate_id?: string | null
           created_at?: string
         }
         Update: {
@@ -77,6 +79,7 @@ export interface Database {
           shipping_address?: string
           phone?: string
           notes?: string | null
+          affiliate_id?: string | null
           created_at?: string
         }
       }
@@ -234,9 +237,194 @@ export interface Database {
           created_at?: string
         }
       }
+      affiliates: {
+        Row: {
+          id: string
+          user_id: string
+          code: string
+          name: string | null
+          email: string | null
+          status: 'active' | 'inactive'
+          visibility_level: 'basic' | 'enhanced'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          code: string
+          name?: string | null
+          email?: string | null
+          status?: 'active' | 'inactive'
+          visibility_level?: 'basic' | 'enhanced'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          code?: string
+          name?: string | null
+          email?: string | null
+          status?: 'active' | 'inactive'
+          visibility_level?: 'basic' | 'enhanced'
+          created_at?: string
+        }
+      }
+      affiliate_links: {
+        Row: {
+          id: string
+          affiliate_id: string
+          campaign: string | null
+          url_slug: string
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          affiliate_id: string
+          campaign?: string | null
+          url_slug: string
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          affiliate_id?: string
+          campaign?: string | null
+          url_slug?: string
+          active?: boolean
+          created_at?: string
+        }
+      }
+      affiliate_clicks: {
+        Row: {
+          id: string
+          affiliate_id: string
+          campaign: string | null
+          referrer: string | null
+          ua_hash: string | null
+          ip_hash: string | null
+          clicked_at: string
+        }
+        Insert: {
+          id?: string
+          affiliate_id: string
+          campaign?: string | null
+          referrer?: string | null
+          ua_hash?: string | null
+          ip_hash?: string | null
+          clicked_at?: string
+        }
+        Update: {
+          id?: string
+          affiliate_id?: string
+          campaign?: string | null
+          referrer?: string | null
+          ua_hash?: string | null
+          ip_hash?: string | null
+          clicked_at?: string
+        }
+      }
+      customer_consent: {
+        Row: {
+          user_id: string
+          marketing_share_optin: boolean
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          marketing_share_optin?: boolean
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          marketing_share_optin?: boolean
+          source?: string | null
+          updated_at?: string
+        }
+      }
+      affiliate_commission_rules: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          rule_type: 'percentage' | 'fixed'
+          value: number
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          rule_type: 'percentage' | 'fixed'
+          value: number
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          rule_type?: 'percentage' | 'fixed'
+          value?: number
+          active?: boolean
+          created_at?: string
+        }
+      }
+      audit_events: {
+        Row: {
+          id: string
+          event_type: string
+          actor_user_id: string | null
+          target_table: string
+          target_id: string | null
+          metadata: Record<string, unknown> | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_type: string
+          actor_user_id?: string | null
+          target_table: string
+          target_id?: string | null
+          metadata?: Record<string, unknown> | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_type?: string
+          actor_user_id?: string | null
+          target_table?: string
+          target_id?: string | null
+          metadata?: Record<string, unknown> | null
+          created_at?: string
+        }
+      }
     }
     Views: {
-      [_ in never]: never
+      v_affiliate_orders: {
+        Row: {
+          order_id: string
+          order_date: string
+          status: string
+          item_count: number
+          total_value: number
+          customer_masked_name: string
+          affiliate_id: string | null
+        }
+      }
+      v_affiliate_customers: {
+        Row: {
+          customer_id: string
+          first_name_initial: string
+          masked_phone: string | null
+          order_count: number
+          total_value: number
+          last_order_date: string
+        }
+      }
     }
     Functions: {
       [_ in never]: never

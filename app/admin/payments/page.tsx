@@ -16,11 +16,6 @@ import {
   TrendingUp
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import type { Database } from '@/types/database'
-
-type PaymentRow = Database['public']['Tables']['payments']['Row']
-type OrderRow = Database['public']['Tables']['orders']['Row']
-type UserProfileRow = Database['public']['Tables']['user_profiles']['Row']
 
 interface AdminPaymentItem {
   id: string
@@ -45,64 +40,13 @@ export default function AdminPayments() {
     setLoading(true)
     setError('')
     try {
-      const { data, error } = await supabase
-        .from('payments')
-        .select(`
-          id,
-          order_id,
-          bank_name,
-          account_name,
-          transfer_date,
-          amount,
-          status,
-          created_at
-        `)
-        .returns<PaymentRow[]>()
-        .order('created_at', { ascending: false })
-
-      if (error) {
+      const res = await fetch('/api/admin/payments')
+      if (!res.ok) {
         setError('Gagal memuat data pembayaran')
         setPayments([])
       } else {
-        // Join to get customer name
-        const orderIds = (data ?? []).map(p => p.order_id)
-        let ordersMap: Record<string, { user_id: string }> = {}
-        let usersMap: Record<string, { full_name: string }> = {}
-
-        if (orderIds.length > 0) {
-          const { data: orders } = await supabase
-            .from('orders')
-            .select('id, user_id')
-            .in('id', orderIds)
-            .returns<Pick<OrderRow, 'id' | 'user_id'>[]>()
-          ordersMap = (orders ?? []).reduce((acc, o) => {
-            acc[o.id] = { user_id: o.user_id }
-            return acc
-          }, {} as Record<string, { user_id: string }>)
-
-          const userIds = Array.from(new Set((orders ?? []).map(o => o.user_id)))
-          if (userIds.length > 0) {
-            const { data: users } = await supabase
-              .from('user_profiles')
-              .select('id, full_name')
-              .in('id', userIds)
-              .returns<Pick<UserProfileRow, 'id' | 'full_name'>[]>()
-            usersMap = (users ?? []).reduce((acc, u) => {
-              acc[u.id] = { full_name: u.full_name }
-              return acc
-            }, {} as Record<string, { full_name: string }>)
-          }
-        }
-
-        const items: AdminPaymentItem[] = (data ?? []).map(p => ({
-          id: p.id,
-          order_id: p.order_id,
-          customer_name: usersMap[ordersMap[p.order_id]?.user_id ?? '']?.full_name ?? 'Customer',
-          amount: Number(p.amount),
-          method: 'Bank Transfer',
-          status: p.status,
-          created_at: p.created_at,
-        }))
+        const json = await res.json()
+        const items: AdminPaymentItem[] = (json?.payments ?? [])
         setPayments(items)
       }
     } catch {
@@ -111,7 +55,7 @@ export default function AdminPayments() {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     fetchPayments()
@@ -125,7 +69,7 @@ export default function AdminPayments() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchPayments,supabase])
+  }, [fetchPayments, supabase])
 
   useEffect(() => {
     let filtered = payments

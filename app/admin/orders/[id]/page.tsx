@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -77,6 +78,7 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
   }
 
   // Fetch order details
+  const service = createServiceClient()
   type OrderRow = Database['public']['Tables']['orders']['Row']
   type OrderItemRow = Database['public']['Tables']['order_items']['Row']
   type ProductLite = Pick<Database['public']['Tables']['products']['Row'], 'name' | 'image_url'>
@@ -86,7 +88,7 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
     payments: PaymentRow[] | null
   }
 
-  const orderResult = await supabase
+  const orderResult = await service
     .from('orders')
     .select(`
       *,
@@ -134,7 +136,7 @@ export default async function AdminOrderDetailPage({ params }: AdminOrderDetailP
 
   // Attach customer profile
   type UserProfileLite = Pick<Database['public']['Tables']['user_profiles']['Row'], 'full_name' | 'phone'>
-  const customerProfileResp = await supabase
+  const customerProfileResp = await service
     .from('user_profiles')
     .select('full_name, phone')
     .eq('id', orderData.user_id)

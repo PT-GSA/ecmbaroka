@@ -80,17 +80,22 @@ export default function AdminCustomers() {
       const profiles = (profilesData ?? []) as UserProfileRow[]
       const userIds = profiles.map(p => p.id).filter((id): id is string => typeof id === 'string' && id.length > 0)
 
-      // Ambil semua orders untuk daftar user di atas
-      const { data: ordersData, error: ordersError } = userIds.length > 0 ? await supabase
-        .from('orders')
-        .select('id, user_id, created_at, total_amount')
-        .in('user_id', userIds) : { data: [], error: null }
-
-      if (ordersError) {
-        console.error('Error fetching orders:', ordersError)
+      // Ambil semua orders via admin API (service role) untuk melewati RLS
+      let orders: OrderRow[] = []
+      if (userIds.length > 0) {
+        try {
+          const res = await fetch(`/api/admin/customers/orders?ids=${encodeURIComponent(userIds.join(','))}`)
+          if (!res.ok) {
+            const errText = await res.text()
+            console.error('Error fetching orders:', errText || `status ${res.status}`)
+          } else {
+            const json = await res.json()
+            orders = (json.data ?? []) as OrderRow[]
+          }
+        } catch (e) {
+          console.error('Error fetching orders:', (e as Error)?.message ?? e)
+        }
       }
-
-      const orders = (ordersData ?? []) as OrderRow[]
 
       // Buat map order per user
       const ordersMap = new Map<string, OrderRow[]>()
@@ -189,7 +194,8 @@ export default function AdminCustomers() {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount)
   }
 
