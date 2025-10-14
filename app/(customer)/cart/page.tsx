@@ -138,19 +138,19 @@ export default function CartPage() {
         affiliateId = cookiesObj['afid'] ?? null
       } catch {}
 
-      // Create order
-      const { data: order, error: orderError } = await supabase
+      // Create order without returning representation to avoid RLS SELECT recursion
+      const orderId = crypto.randomUUID()
+      const { error: orderError } = await supabase
         .from('orders')
         .insert({
+          id: orderId,
           user_id: user.id,
           total_amount: totalAmount,
           status: 'pending',
-          shipping_address: '', // Will be filled in checkout
-          phone: '', // Will be filled in checkout
-          affiliate_id: affiliateId,
+          shipping_address: '-', // Will be filled in checkout
+          phone: '-', // Will be filled in checkout
+          affiliate_id: affiliateId ?? undefined,
         })
-        .select()
-        .single()
 
       if (orderError) {
         console.error('Error creating order:', orderError)
@@ -159,7 +159,7 @@ export default function CartPage() {
 
       // Add order items
       const orderItems = cartItems.map(item => ({
-        order_id: order.id,
+        order_id: orderId,
         product_id: item.productId,
         quantity: item.quantity,
         price_at_purchase: getTierPriceForQty(item.quantity),
@@ -178,7 +178,7 @@ export default function CartPage() {
       clearCart()
 
       // Redirect to checkout
-      router.push(`/checkout?orderId=${order.id}`)
+      router.push(`/checkout?orderId=${orderId}`)
     } catch (err) {
       console.error('Checkout error:', err)
     } finally {

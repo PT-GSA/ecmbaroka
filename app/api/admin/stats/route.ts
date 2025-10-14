@@ -29,19 +29,19 @@ export async function GET(_req: NextRequest) {
   const service = createServiceClient()
 
   // Counts
-  const totalOrdersRes = await service.from('orders').select('id', { count: 'exact', head: true })
+  const totalOrdersRes = await service.from('orders').select('id', { count: 'exact' }).range(0, 0)
   const totalOrders = totalOrdersRes.count ?? 0
 
-  const pendingOrdersRes = await service.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+  const pendingOrdersRes = await service.from('orders').select('id', { count: 'exact' }).eq('status', 'pending').range(0, 0)
   const pendingOrders = pendingOrdersRes.count ?? 0
 
-  const completedOrdersRes = await service.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'completed')
+  const completedOrdersRes = await service.from('orders').select('id', { count: 'exact' }).eq('status', 'completed').range(0, 0)
   const completedOrders = completedOrdersRes.count ?? 0
 
-  const productsRes = await service.from('products').select('id', { count: 'exact', head: true })
+  const productsRes = await service.from('products').select('id', { count: 'exact' }).range(0, 0)
   const totalProducts = productsRes.count ?? 0
 
-  const customersRes = await service.from('user_profiles').select('id', { count: 'exact', head: true }).eq('role', 'customer')
+  const customersRes = await service.from('user_profiles').select('id', { count: 'exact' }).eq('role', 'customer').range(0, 0)
   const totalCustomers = customersRes.count ?? 0
 
   // Revenue
@@ -68,7 +68,7 @@ export async function GET(_req: NextRequest) {
   const lowStockProducts = (lowStockRes.data ?? []) as ProductRowSlim[]
 
   // Pending payments
-  const pendingPaymentsRes = await service.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+  const pendingPaymentsRes = await service.from('payments').select('id', { count: 'exact' }).eq('status', 'pending').range(0, 0)
   const pendingPaymentsCount = pendingPaymentsRes.count ?? 0
 
   return NextResponse.json({

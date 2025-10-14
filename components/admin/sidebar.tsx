@@ -50,8 +50,9 @@ export default function AdminSidebar() {
   const fetchOrdersPendingCount = useCallback(async () => {
     const { count, error } = await supabase
       .from('orders')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact' })
       .eq('status', 'pending')
+      .range(0, 0)
     if (!error) {
       setOrdersPendingCount(count ?? 0)
     }
@@ -60,8 +61,9 @@ export default function AdminSidebar() {
   const fetchPaymentsPendingCount = useCallback(async () => {
     const { count, error } = await supabase
       .from('payments')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact' })
       .eq('status', 'pending')
+      .range(0, 0)
     if (!error) {
       setPaymentsPendingCount(count ?? 0)
     }

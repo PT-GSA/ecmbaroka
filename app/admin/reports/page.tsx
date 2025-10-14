@@ -279,9 +279,10 @@ export default function AdminReports() {
         for (const m of months7) {
           const { count, error } = await supabase
             .from('user_profiles')
-            .select('id', { count: 'exact', head: true })
+            .select('id', { count: 'exact' })
             .gte('created_at', m.start.toISOString())
             .lte('created_at', new Date(m.end.getFullYear(), m.end.getMonth(), m.end.getDate(), 23, 59, 59).toISOString())
+            .range(0, 0)
           if (error) throw new Error(error.message)
           monthlyCounts.push({ month: m.label, count: count ?? 0 })
         }

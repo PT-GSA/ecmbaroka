@@ -103,21 +103,55 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
         return
       }
 
+      // Read affiliate id from cookie (if any)
+      let affiliateId: string | null = null
+      try {
+        const cookieStr = typeof document !== 'undefined' ? document.cookie : ''
+        const cookiesObj = Object.fromEntries(
+          cookieStr
+            .split(';')
+            .map((c) => c.trim())
+            .filter(Boolean)
+            .map((c) => {
+              const [k, ...rest] = c.split('=')
+              return [decodeURIComponent(k), decodeURIComponent(rest.join('='))]
+            })
+        ) as Record<string, string>
+        affiliateId = cookiesObj['afid'] ?? null
+      } catch {}
+
+      // Try to prefill shipping info from user profile
+      let phonePrefill = ''
+      let addressPrefill = ''
+      try {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('phone, address')
+          .eq('id', user.id)
+          .maybeSingle()
+        phonePrefill = (profile?.phone ?? '').trim()
+        addressPrefill = (profile?.address ?? '').trim()
+      } catch {}
+
       // Create order directly
-      const { data: order, error: orderError } = await supabase
+      // Generate order id locally to avoid SELECT on insert (which can trigger RLS recursion)
+      const orderId = crypto.randomUUID()
+      const { error: orderError } = await supabase
         .from('orders')
         .insert({
+          id: orderId,
           user_id: user.id,
           total_amount: totalPrice,
           status: 'pending',
-          shipping_address: '', // Will be filled in checkout
-          phone: '', // Will be filled in checkout
+          shipping_address: addressPrefill || '-', // Will be filled in checkout
+          phone: phonePrefill || '-', // Will be filled in checkout
+          affiliate_id: affiliateId ?? undefined,
         })
-        .select()
-        .single()
 
       if (orderError) {
-        setError('Gagal membuat pesanan')
+        console.error('Gagal membuat pesanan:', orderError)
+        const message = (orderError as { message?: string } | null)?.message || ''
+        setError(message ? `Gagal membuat pesanan: ${message}` : 'Gagal membuat pesanan')
         return
       }
 
@@ -125,7 +159,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
       const { error: itemError } = await supabase
         .from('order_items')
         .insert({
-          order_id: order.id,
+          order_id: orderId,
           product_id: product.id,
           quantity: quantity,
           price_at_purchase: perCartonPrice,
@@ -137,7 +171,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
       }
 
       // Redirect to checkout
-      router.push(`/checkout?orderId=${order.id}`)
+      router.push(`/checkout?orderId=${orderId}`)
     } catch {
       setError('Terjadi kesalahan saat membuat pesanan')
     } finally {

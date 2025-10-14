@@ -72,3 +72,28 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.redirect(new URL('/admin/affiliates?success=created', req.url))
 }
+
+export async function GET(req: NextRequest) {
+  const adminCheck = await ensureAdmin(req)
+  if (!('ok' in adminCheck) || adminCheck.ok === false) return adminCheck.redirect
+
+  const service = createServiceClient()
+  const { data: affiliates, error: affErr } = await service
+    .from('affiliates')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  const { data: links, error: linksErr } = await service
+    .from('affiliate_links')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (affErr || linksErr) {
+    return NextResponse.json({ error: 'fetch_failed' }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    affiliates: (Array.isArray(affiliates) ? affiliates : []) as Database['public']['Tables']['affiliates']['Row'][],
+    links: (Array.isArray(links) ? links : []) as Database['public']['Tables']['affiliate_links']['Row'][],
+  })
+}

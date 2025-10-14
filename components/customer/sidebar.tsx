@@ -48,9 +48,10 @@ export default function CustomerSidebar() {
   const fetchUnreadCount = useCallback(async (uid: string) => {
     const { count, error } = await supabase
       .from('notifications')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact' })
       .eq('user_id', uid)
       .eq('is_read', false)
+      .range(0, 0)
 
     if (!error) {
       setUnreadCount(count ?? 0)

@@ -1,17 +1,23 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { headers, cookies } from 'next/headers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import type { Database } from '@/types/database'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 type AffiliateRow = Database['public']['Tables']['affiliates']['Row']
 type AffiliateLinkRow = Database['public']['Tables']['affiliate_links']['Row']
 
-export default async function AdminAffiliatesPage() {
+export default async function AdminAffiliatesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ success?: string; error?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
@@ -27,24 +33,37 @@ export default async function AdminAffiliatesPage() {
     redirect('/')
   }
 
-  const { data: affiliates } = await supabase
-    .from('affiliates')
-    .select('*')
-    .order('created_at', { ascending: false })
-  const affs: AffiliateRow[] = Array.isArray(affiliates) ? (affiliates as AffiliateRow[]) : []
+  // Ambil via admin API agar pasti bypass RLS (gunakan absolute URL)
+  const hdrs = await headers()
+  const proto = hdrs.get('x-forwarded-proto') ?? 'http'
+  const host = hdrs.get('x-forwarded-host') ?? hdrs.get('host') ?? 'localhost:3000'
+  const origin = `${proto}://${host}`
+  const cookieStore = await cookies()
+  const cookieHeader = cookieStore.getAll().map(({ name, value }) => `${name}=${value}`).join('; ')
+  const res = await fetch(new URL('/api/admin/affiliates', origin), {
+    cache: 'no-store',
+    redirect: 'manual',
+    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+  })
+  let affs: AffiliateRow[] = []
+  let typedLinks: AffiliateLinkRow[] = []
+  if (res.ok) {
+    const ct = res.headers.get('content-type') || ''
+    if (ct.includes('application/json')) {
+      const json = await res.json()
+      affs = Array.isArray(json.affiliates) ? (json.affiliates as AffiliateRow[]) : []
+      typedLinks = Array.isArray(json.links) ? (json.links as AffiliateLinkRow[]) : []
+    }
+  }
 
-  // Preload links grouped by affiliate
-  const { data: links } = await supabase
-    .from('affiliate_links')
-    .select('*')
-    .order('created_at', { ascending: false })
   const linksByAffiliate: Record<string, AffiliateLinkRow[]> = {}
-  const typedLinks: AffiliateLinkRow[] = Array.isArray(links) ? (links as AffiliateLinkRow[]) : []
   typedLinks.forEach((l: AffiliateLinkRow) => {
     const key = l.affiliate_id
     if (!linksByAffiliate[key]) linksByAffiliate[key] = []
     linksByAffiliate[key].push(l)
   })
+
+  const sp = searchParams ? await searchParams : undefined
 
   return (
     <div className="space-y-6">
@@ -57,6 +76,34 @@ export default async function AdminAffiliatesPage() {
           <Link href="/admin/affiliates/new">Tambah Affiliate</Link>
         </Button>
       </div>
+
+      {sp?.success && (
+        <Alert>
+          <AlertTitle>Sukses</AlertTitle>
+          <AlertDescription>
+            {sp.success === 'created' && 'Affiliate berhasil dibuat.'}
+            {sp.success === '1' && 'Link kampanye berhasil dibuat.'}
+            {sp.success === 'updated' && 'Affiliate berhasil diperbarui.'}
+            {sp.success === 'deleted' && 'Affiliate berhasil dihapus.'}
+            {!['created','1'].includes(sp.success!) && 'Aksi berhasil dilakukan.'}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {sp?.error && (
+        <Alert variant="destructive">
+          <AlertTitle>Gagal</AlertTitle>
+          <AlertDescription>
+            {sp.error === 'missing_fields' && 'Mohon isi email dan kode.'}
+            {sp.error === 'user_lookup_failed' && 'Gagal mencari pengguna berdasarkan email.'}
+            {sp.error === 'user_not_found' && 'Pengguna dengan email tersebut tidak ditemukan.'}
+            {sp.error === 'create_failed' && 'Gagal membuat affiliate baru.'}
+            {sp.error === 'update_failed' && 'Gagal memperbarui affiliate.'}
+            {sp.error === 'delete_failed' && 'Gagal menghapus affiliate.'}
+            {!['missing_fields','user_lookup_failed','user_not_found','create_failed'].includes(sp.error!) && 'Terjadi kesalahan.'}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Separator />
 
@@ -107,6 +154,41 @@ export default async function AdminAffiliatesPage() {
                   </div>
                   <input type="hidden" name="affiliate_id" value={a.id} />
                 </form>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-3">
+                  <div className="font-semibold">Edit Affiliate</div>
+                  <form action={`/admin/affiliates/${a.id}/update`} method="post" className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor={`name-${a.id}`}>Nama</Label>
+                      <Input id={`name-${a.id}`} name="name" defaultValue={a.name ?? ''} placeholder="Nama affiliate" />
+                    </div>
+                    <div>
+                      <Label htmlFor={`email-${a.id}`}>Email</Label>
+                      <Input id={`email-${a.id}`} name="email" defaultValue={a.email ?? ''} placeholder="email@contoh.com" />
+                    </div>
+                    <div>
+                      <Label htmlFor={`code-${a.id}`}>Kode</Label>
+                      <Input id={`code-${a.id}`} name="code" defaultValue={a.code ?? ''} placeholder="KODEAFF" />
+                    </div>
+                    <div>
+                      <Label htmlFor={`status-${a.id}`}>Status</Label>
+                      <Input id={`status-${a.id}`} name="status" defaultValue={a.status ?? ''} placeholder="aktif/nonaktif" />
+                    </div>
+                    <div>
+                      <Label htmlFor={`visibility-${a.id}`}>Visibilitas</Label>
+                      <Input id={`visibility-${a.id}`} name="visibility_level" defaultValue={a.visibility_level ?? ''} placeholder="basic/enhanced" />
+                    </div>
+                    <div className="flex items-end">
+                      <Button type="submit">Simpan</Button>
+                    </div>
+                  </form>
+
+                  <form action={`/admin/affiliates/${a.id}/delete`} method="post" className="mt-2">
+                    <Button type="submit" variant="destructive">Hapus Affiliate</Button>
+                  </form>
+                </div>
               </div>
             </CardContent>
           </Card>

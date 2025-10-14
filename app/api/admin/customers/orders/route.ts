@@ -46,3 +46,35 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ data }, { status: 200 })
 }
+
+export async function POST(req: NextRequest) {
+  const adminCheck = await ensureAdmin(req)
+  if (!('ok' in adminCheck) || adminCheck.ok === false) return adminCheck.redirect
+
+  let ids: string[] = []
+  try {
+    const body = await req.json()
+    if (Array.isArray(body?.ids)) {
+      ids = body.ids.filter((v: unknown) => typeof v === 'string' && v.length > 0)
+    }
+  } catch {
+    // Ignore bad JSON, treat as empty ids
+  }
+
+  if (ids.length === 0) {
+    return NextResponse.json({ data: [] }, { status: 200 })
+  }
+
+  const service = createServiceClient()
+  const { data, error } = await service
+    .from('orders')
+    .select('id, user_id, created_at, total_amount')
+    .in('user_id', ids)
+
+  if (error) {
+    const pgError = error as PostgrestError
+    return NextResponse.json({ error: pgError?.message ?? 'Unknown error' }, { status: 500 })
+  }
+
+  return NextResponse.json({ data }, { status: 200 })
+}

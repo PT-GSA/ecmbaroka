@@ -84,7 +84,11 @@ export default function AdminCustomers() {
       let orders: OrderRow[] = []
       if (userIds.length > 0) {
         try {
-          const res = await fetch(`/api/admin/customers/orders?ids=${encodeURIComponent(userIds.join(','))}`)
+          const res = await fetch('/api/admin/customers/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: userIds }),
+          })
           if (!res.ok) {
             const errText = await res.text()
             console.error('Error fetching orders:', errText || `status ${res.status}`)
