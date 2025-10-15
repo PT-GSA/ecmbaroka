@@ -13,11 +13,9 @@ import {
   Package, 
   MapPin, 
   Phone, 
-  TrendingUp,
   Clock,
   CheckCircle,
   XCircle,
-  Truck,
   DollarSign
 } from 'lucide-react'
 
@@ -47,15 +45,13 @@ interface Order {
   order_items: OrderItem[]
 }
 
-type UserProfileLite = Pick<Database['public']['Tables']['user_profiles']['Row'], 'id' | 'full_name' | 'phone'>
-
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{ id: string } | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const supabase = createClient()
 
