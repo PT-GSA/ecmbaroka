@@ -33,6 +33,7 @@ export default function AdminProductsPage() {
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const supabase = createClient()
+  const [deleting, setDeleting] = useState(false)
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
@@ -154,6 +155,35 @@ export default function AdminProductsPage() {
   const activeProducts = products.filter(p => p.is_active).length
   const totalValue = products.reduce((sum, product) => sum + (product.price * product.stock), 0)
   const lowStockProducts = products.filter(p => p.stock < 10).length
+
+  async function handleBulkDelete(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (deleting) return
+    try {
+      setDeleting(true)
+      const form = e.currentTarget
+      const fd = new FormData(form)
+      const ids = fd.getAll('ids').filter((v): v is string => typeof v === 'string')
+      if (!ids.length) {
+        // no selection; nothing to delete
+        return
+      }
+      const res = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      })
+      if (!res.ok) {
+        console.error('Bulk delete failed')
+        return
+      }
+      await fetchProducts()
+    } catch (err) {
+      console.error('Bulk delete error:', err)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -371,7 +401,8 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
 
-                {/* Products Display */}
+                {/* Products Display (wrapped in form for bulk delete) */}
+                <form id="bulk-delete-form" onSubmit={handleBulkDelete}>
                 {viewMode === 'grid' ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filteredProducts.map((product) => (
@@ -535,6 +566,7 @@ export default function AdminProductsPage() {
                     ))}
                   </div>
                 )}
+                </form>
               </>
             )}
           </div>

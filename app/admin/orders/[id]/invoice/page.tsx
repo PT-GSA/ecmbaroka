@@ -33,6 +33,7 @@ interface OrderItem {
 
 interface Order {
   id: string
+  order_code?: string | null
   created_at: string
   status: string
   total_amount: number
@@ -43,68 +44,71 @@ interface Order {
   order_items: OrderItem[]
 }
 
+type StoreInfo = {
+  storeName: string
+  storeAddress: string
+  storePhone: string
+  storeEmail: string
+  bankName: string
+  accountNumber: string
+  accountName: string
+}
+
+const DEFAULT_STORE: StoreInfo = {
+  storeName: 'Susu Baroka',
+  storeAddress: 'Jl. Merdeka No. 123, Jakarta Selatan',
+  storePhone: '+62 812-3456-7890',
+  storeEmail: 'info@susubaroka.com',
+  bankName: 'BCA',
+  accountNumber: '1234567890',
+  accountName: 'Susu Baroka',
+}
+
 export default function InvoicePage() {
   const params = useParams()
   const orderId = params.id as string
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
-
-  // Mock data untuk demo
-  const mockInvoiceData = {
-    storeName: "Susu Baroka",
-    storeAddress: "Jl. Merdeka No. 123, Jakarta Selatan",
-    storePhone: "+62 812-3456-7890",
-    storeEmail: "info@susubaroka.com",
-    bankName: "BCA",
-    accountNumber: "1234567890",
-    accountName: "Susu Baroka"
-  }
+  const [store, setStore] = useState<StoreInfo>(DEFAULT_STORE)
 
   useEffect(() => {
-    // Mock order data
-    const mockOrder: Order = {
-      id: orderId,
-      created_at: '2024-01-15T10:30:00Z',
-      status: 'completed',
-      total_amount: 250000,
-      customer_name: 'John Doe',
-      customer_email: 'john.doe@email.com',
-      customer_phone: '+62 812-3456-7890',
-      customer_address: 'Jl. Sudirman No. 123, Jakarta Selatan',
-      order_items: [
-        {
-          id: '1',
-          quantity: 2,
-          price_at_purchase: 25000,
-          products: {
-            name: 'Susu Steril 1L',
-            image_url: null
-          }
-        },
-        {
-          id: '2',
-          quantity: 3,
-          price_at_purchase: 15000,
-          products: {
-            name: 'Susu Pasteurisasi 500ml',
-            image_url: null
-          }
-        },
-        {
-          id: '3',
-          quantity: 1,
-          price_at_purchase: 35000,
-          products: {
-            name: 'Susu Organik 1L',
-            image_url: null
-          }
+    const loadOrder = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/admin/orders/${orderId}`)
+        if (!res.ok) {
+          setOrder(null)
+        } else {
+          const json = await res.json()
+          const ord: Order | null = json?.order ?? null
+          setOrder(ord)
         }
-      ]
+      } catch (e) {
+        console.error('Failed to fetch order for invoice:', e)
+        setOrder(null)
+      } finally {
+        setLoading(false)
+      }
     }
-
-    setOrder(mockOrder)
-    setLoading(false)
+    if (orderId) {
+      void loadOrder()
+    }
   }, [orderId])
+
+  useEffect(() => {
+    const loadStoreSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/store-settings', { cache: 'no-store' })
+        if (!res.ok) return
+        const json = await res.json()
+        const s = (json?.settings ?? DEFAULT_STORE) as StoreInfo
+        setStore(s)
+      } catch (e) {
+        console.error('Failed to fetch store settings:', e)
+      }
+    }
+    void loadStoreSettings()
+  }, [])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -136,8 +140,11 @@ export default function InvoicePage() {
     return order.order_items.reduce((sum, item) => sum + (item.quantity * item.price_at_purchase), 0)
   }
 
+  // PPN 11% sudah termasuk dalam harga (inclusive)
+  const VAT_RATE = 0.11
   const calculateTax = () => {
-    return 0 // No tax for now
+    const subtotal = calculateSubtotal()
+    return subtotal * (VAT_RATE / (1 + VAT_RATE))
   }
 
   const calculateShipping = () => {
@@ -172,7 +179,7 @@ export default function InvoicePage() {
 
 Terima kasih sudah berbelanja di Susu Baroka!
 
-Invoice: INV-${order.id}
+Invoice: INV-${order.order_code ? order.order_code : order.id}
 Total: ${formatCurrency(order.total_amount)}
 Status: ${order.status}
 
@@ -180,9 +187,9 @@ Lihat invoice lengkap di:
 ${window.location.href}
 
 Silakan transfer ke:
-Bank: ${mockInvoiceData.bankName}
-No. Rek: ${mockInvoiceData.accountNumber}
-A/N: ${mockInvoiceData.accountName}
+Bank: ${store.bankName}
+No. Rek: ${store.accountNumber}
+A/N: ${store.accountName}
 
 Terima kasih!`
 
@@ -223,7 +230,7 @@ Terima kasih!`
   const subtotal = calculateSubtotal()
   const tax = calculateTax()
   const shipping = calculateShipping()
-  const total = subtotal + tax + shipping
+  const total = subtotal + shipping
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -246,26 +253,18 @@ Terima kasih!`
                 document={order ? (
                   <InvoicePDF
                     order={order}
-                    store={{
-                      storeName: mockInvoiceData.storeName,
-                      storeAddress: mockInvoiceData.storeAddress,
-                      storePhone: mockInvoiceData.storePhone,
-                      storeEmail: mockInvoiceData.storeEmail,
-                      bankName: mockInvoiceData.bankName,
-                      accountNumber: mockInvoiceData.accountNumber,
-                      accountName: mockInvoiceData.accountName,
-                    }}
+                    store={store}
                     subtotal={calculateSubtotal()}
                     tax={calculateTax()}
                     shipping={calculateShipping()}
-                    total={calculateSubtotal() + calculateTax() + calculateShipping()}
+                    total={calculateSubtotal() + calculateShipping()}
                     formatted={{
                       currency: (n: number) => formatCurrency(n),
                       dateFull: (iso: string) => formatDateFull(iso),
                     }}
                   />
                 ) : (<></>)}
-                fileName={`Invoice-${orderId}.pdf`}
+                fileName={`Invoice-${order?.order_code ?? orderId}.pdf`}
               >
                 {({ loading }) => (
                   <Button variant="outline" data-pdf-button>
@@ -292,13 +291,13 @@ Terima kasih!`
               <Heart className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{mockInvoiceData.storeName}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{store.storeName}</h1>
               <p className="text-gray-600">Susu Steril Berkualitas Tinggi</p>
             </div>
           </div>
           <div className="text-right">
             <h2 className="text-2xl font-bold text-blue-600 mb-2">INVOICE</h2>
-            <p className="text-sm text-gray-500">INV-{order.id}</p>
+            <p className="text-sm text-gray-500">INV-{order.order_code ? order.order_code : order.id}</p>
           </div>
         </div>
 
@@ -327,15 +326,15 @@ Terima kasih!`
             <div className="space-y-2">
               <div className="flex items-center">
                 <MapPin className="w-4 h-4 text-gray-500 mr-2" />
-                <span className="text-sm text-gray-600">{mockInvoiceData.storeAddress}</span>
+                <span className="text-sm text-gray-600">{store.storeAddress}</span>
               </div>
               <div className="flex items-center">
                 <Phone className="w-4 h-4 text-gray-500 mr-2" />
-                <span className="text-sm text-gray-600">{mockInvoiceData.storePhone}</span>
+                <span className="text-sm text-gray-600">{store.storePhone}</span>
               </div>
               <div className="flex items-center">
                 <Mail className="w-4 h-4 text-gray-500 mr-2" />
-                <span className="text-sm text-gray-600">{mockInvoiceData.storeEmail}</span>
+                <span className="text-sm text-gray-600">{store.storeEmail}</span>
               </div>
             </div>
           </div>
@@ -362,7 +361,7 @@ Terima kasih!`
                   <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold text-gray-900">No.</th>
                   <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold text-gray-900">Produk</th>
                   <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold text-gray-900">Qty</th>
-                  <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold text-gray-900">Harga Satuan</th>
+                  <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold text-gray-900">Harga Per Karton</th>
                   <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold text-gray-900">Subtotal</th>
                 </tr>
               </thead>
@@ -390,9 +389,9 @@ Terima kasih!`
                 <CreditCard className="w-4 h-4 text-blue-600 mr-2" />
                 <span className="text-sm font-medium text-blue-900">Bank Transfer</span>
               </div>
-              <p className="text-sm text-blue-800">Bank: {mockInvoiceData.bankName}</p>
-              <p className="text-sm text-blue-800">No. Rekening: {mockInvoiceData.accountNumber}</p>
-              <p className="text-sm text-blue-800">Atas Nama: {mockInvoiceData.accountName}</p>
+              <p className="text-sm text-blue-800">Bank: {store.bankName}</p>
+              <p className="text-sm text-blue-800">No. Rekening: {store.accountNumber}</p>
+              <p className="text-sm text-blue-800">Atas Nama: {store.accountName}</p>
             </div>
           </div>
 
@@ -404,7 +403,7 @@ Terima kasih!`
                 <span className="text-sm font-medium text-gray-900">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">PPN (0%):</span>
+                <span className="text-sm text-gray-600">PPN (11% - termasuk):</span>
                 <span className="text-sm font-medium text-gray-900">{formatCurrency(tax)}</span>
               </div>
               <div className="flex justify-between">

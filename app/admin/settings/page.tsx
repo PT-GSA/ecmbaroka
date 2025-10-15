@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import type { Database } from '@/types/database'
 import ProfileFormWrapper from '@/components/customer/profile-form-wrapper'
 import ChangePasswordForm from '../../../components/admin/change-password-form'
+import StoreSettingsForm from '@/components/admin/store-settings-form'
 
 export default async function AdminSettingsPage() {
   const supabase = await createClient()
@@ -69,6 +70,11 @@ export default async function AdminSettingsPage() {
           {/* Security Settings */}
           <div className="lg:col-span-1">
             <ChangePasswordForm />
+          </div>
+
+          {/* Store Settings */}
+          <div className="lg:col-span-2">
+            <StoreSettingsForm />
           </div>
         </div>
       </div>

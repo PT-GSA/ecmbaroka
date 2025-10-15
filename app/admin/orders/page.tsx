@@ -365,7 +365,7 @@ export default function AdminOrdersPage() {
                         {order.order_items.map((item: OrderItem) => (
                           <div key={item.id} className="flex justify-between text-sm bg-white rounded-lg p-3">
                             <span className="font-medium">{item.products.name} x {item.quantity}</span>
-                            <span className="text-green-600 font-semibold">{formatCurrency(item.products.price * item.quantity)}</span>
+                            <span className="text-green-600 font-semibold">{formatCurrency(item.price_at_purchase * item.quantity)}</span>
                           </div>
                         ))}
                       </div>

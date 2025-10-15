@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createServiceClient } from '@/lib/supabase/service'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -66,14 +67,33 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin-auth/login', request.url))
     }
 
-    // Check if user is admin
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    // Check if user is admin with RLS-safe fallback
+    let role: string | null = null
+    try {
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (!error) {
+        role = profile?.role ?? null
+      }
+    } catch {}
 
-    if (!profile || profile.role !== 'admin') {
+    // Fallback: use service role to bypass RLS issues (e.g., recursive policies causing 500)
+    if (!role) {
+      try {
+        const service = createServiceClient()
+        const { data: svcProfile } = await service
+          .from('user_profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle()
+        role = svcProfile?.role ?? null
+      } catch {}
+    }
+
+    if (role !== 'admin') {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

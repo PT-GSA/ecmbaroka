@@ -120,62 +120,30 @@ export default function CartPage() {
         return
       }
 
-      // Read affiliate cookies (set via /api/affiliate/track)
-      let affiliateId: string | null = null
-      let affiliateLinkId: string | null = null
-      try {
-        // Next.js app router client: read document.cookie in client component
-        const cookieStr = typeof document !== 'undefined' ? document.cookie : ''
-        const cookiesObj = Object.fromEntries(
-          cookieStr
-            .split(';')
-            .map((c) => c.trim())
-            .filter(Boolean)
-            .map((c) => {
-              const [k, ...rest] = c.split('=')
-              return [decodeURIComponent(k), decodeURIComponent(rest.join('='))]
-            })
-        ) as Record<string, string>
-        affiliateId = cookiesObj['afid'] ?? null
-        affiliateLinkId = cookiesObj['aflid'] ?? null
-      } catch {}
+      // Create order via server endpoint to generate structured order_code
+      const payload = {
+        items: cartItems.map((item) => ({
+          product_id: item.productId,
+          quantity: item.quantity,
+          price_at_purchase: getTierPriceForQty(item.quantity),
+        })),
+      }
 
-      // Create order without returning representation to avoid RLS SELECT recursion
-      const orderId = crypto.randomUUID()
-      const { error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          id: orderId,
-          user_id: user.id,
-          total_amount: totalAmount,
-          status: 'pending',
-          shipping_address: '-', // Will be filled in checkout
-          phone: '-', // Will be filled in checkout
-          affiliate_id: affiliateId ?? undefined,
-          affiliate_link_id: affiliateLinkId ?? undefined,
-        })
+      const res = await fetch('/api/customer/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
 
-      if (orderError) {
-        console.error('Error creating order:', orderError)
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        console.error('Error creating order:', j?.error || res.statusText)
+        setError(j?.error || 'Gagal membuat pesanan')
+        setLoading(false)
         return
       }
 
-      // Add order items
-      const orderItems = cartItems.map(item => ({
-        order_id: orderId,
-        product_id: item.productId,
-        quantity: item.quantity,
-        price_at_purchase: getTierPriceForQty(item.quantity),
-      }))
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems)
-
-      if (itemsError) {
-        console.error('Error adding order items:', itemsError)
-        return
-      }
+      const { orderId } = await res.json()
 
       // Clear cart
       clearCart()

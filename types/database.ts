@@ -57,6 +57,7 @@ export interface Database {
           shipping_address: string
           phone: string
           notes: string | null
+          order_code: string | null
           affiliate_id: string | null
           affiliate_link_id: string | null
           commission_rate: number
@@ -72,6 +73,7 @@ export interface Database {
           shipping_address: string
           phone: string
           notes?: string | null
+          order_code?: string | null
           affiliate_id?: string | null
           affiliate_link_id?: string | null
           commission_rate?: number
@@ -87,6 +89,7 @@ export interface Database {
           shipping_address?: string
           phone?: string
           notes?: string | null
+          order_code?: string | null
           affiliate_id?: string | null
           affiliate_link_id?: string | null
           commission_rate?: number
@@ -442,7 +445,10 @@ export interface Database {
       }
     }
     Functions: {
-      [_ in never]: never
+      next_order_counter: {
+        Args: { date_ymd: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

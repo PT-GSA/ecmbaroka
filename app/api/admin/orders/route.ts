@@ -63,7 +63,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
     }
 
-    const rawOrders = (ordersData ?? []) as (Database['public']['Tables']['orders']['Row'] & {
+    const rawOrders = (ordersData ?? []) as unknown as (Database['public']['Tables']['orders']['Row'] & {
       order_items: (Database['public']['Tables']['order_items']['Row'] & {
         products: Pick<Database['public']['Tables']['products']['Row'], 'name' | 'price'>
       })[]

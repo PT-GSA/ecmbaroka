@@ -14,6 +14,7 @@ interface OrderItem {
 
 interface Order {
   id: string
+  order_code?: string | null
   created_at: string
   status: string
   total_amount: number
@@ -144,7 +145,7 @@ export default function InvoicePDF({ order, store, subtotal, tax, shipping, tota
           </View>
           <View>
             <Text style={{ fontSize: 18, fontWeight: 700, color: '#2563EB' }}>INVOICE</Text>
-            <Text style={styles.subtitle}>INV-{order.id}</Text>
+            <Text style={styles.subtitle}>INV-{order.order_code ? order.order_code : order.id}</Text>
           </View>
         </View>
 
@@ -209,8 +210,8 @@ export default function InvoicePDF({ order, store, subtotal, tax, shipping, tota
 
         <View style={styles.totals}>
           <Text>Subtotal: {formatted.currency(subtotal)}</Text>
-          <Text>Tax (10%): {formatted.currency(tax)}</Text>
-          <Text>Shipping: {formatted.currency(shipping)}</Text>
+          <Text>PPN (11% - termasuk): {formatted.currency(tax)}</Text>
+          <Text>Ongkir: {formatted.currency(shipping)}</Text>
           <Text style={{ fontWeight: 700 }}>Total: {formatted.currency(total)}</Text>
         </View>
 

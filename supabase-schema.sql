@@ -35,8 +35,14 @@ CREATE TABLE IF NOT EXISTS orders (
   shipping_address TEXT NOT NULL,
   phone TEXT NOT NULL,
   notes TEXT,
+  -- Kode order terstruktur YYMMDD + 4-digit sequence
+  order_code TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Ensure column exists when table already present
+ALTER TABLE IF EXISTS orders
+  ADD COLUMN IF NOT EXISTS order_code TEXT;
 
 -- Create order_items table
 CREATE TABLE IF NOT EXISTS order_items (
@@ -65,6 +71,7 @@ CREATE TABLE IF NOT EXISTS payments (
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_order_code ON orders(order_code);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
@@ -441,3 +448,30 @@ CREATE POLICY "Admins can manage all reviews" ON product_reviews
       WHERE id = auth.uid() AND role = 'admin'
     )
   );
+
+-- ========================================
+-- DAILY ORDER CODE COUNTER
+-- ========================================
+
+-- Tabel untuk menyimpan counter harian (gunakan YYYYMMDD sebagai key)
+CREATE TABLE IF NOT EXISTS order_counters (
+  date_ymd TEXT PRIMARY KEY,
+  counter INTEGER NOT NULL
+);
+
+-- Fungsi atomik untuk mengambil counter berikutnya per hari
+CREATE OR REPLACE FUNCTION public.next_order_counter(date_ymd TEXT)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE next_counter INTEGER;
+BEGIN
+  INSERT INTO public.order_counters(date_ymd, counter)
+  VALUES (date_ymd, 1)
+  ON CONFLICT (date_ymd) DO UPDATE
+    SET counter = public.order_counters.counter + 1
+  RETURNING counter INTO next_counter;
+
+  RETURN next_counter;
+END;
+$$;

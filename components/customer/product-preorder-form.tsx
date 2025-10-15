@@ -106,25 +106,6 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
         return
       }
 
-      // Read affiliate id from cookie (if any)
-      let affiliateId: string | null = null
-      let affiliateLinkId: string | null = null
-      try {
-        const cookieStr = typeof document !== 'undefined' ? document.cookie : ''
-        const cookiesObj = Object.fromEntries(
-          cookieStr
-            .split(';')
-            .map((c) => c.trim())
-            .filter(Boolean)
-            .map((c) => {
-              const [k, ...rest] = c.split('=')
-              return [decodeURIComponent(k), decodeURIComponent(rest.join('='))]
-            })
-        ) as Record<string, string>
-        affiliateId = cookiesObj['afid'] ?? null
-        affiliateLinkId = cookiesObj['aflid'] ?? null
-      } catch {}
-
       // Try to prefill shipping info from user profile
       let phonePrefill = ''
       let addressPrefill = ''
@@ -137,44 +118,27 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
         phonePrefill = (profile?.phone ?? '').trim()
         addressPrefill = (profile?.address ?? '').trim()
       } catch {}
+      // Create order via server endpoint to generate structured order_code
+      const payload = {
+        items: [{ product_id: product.id, quantity, price_at_purchase: perCartonPrice }],
+        shipping_address: addressPrefill || '-',
+        phone: phonePrefill || '-',
+      }
 
-      // Create order directly
-      // Generate order id locally to avoid SELECT on insert (which can trigger RLS recursion)
-      const orderId = crypto.randomUUID()
-      const { error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          id: orderId,
-          user_id: user.id,
-          total_amount: totalPrice,
-          status: 'pending',
-          shipping_address: addressPrefill || '-', // Will be filled in checkout
-          phone: phonePrefill || '-', // Will be filled in checkout
-          affiliate_id: affiliateId ?? undefined,
-          affiliate_link_id: affiliateLinkId ?? undefined,
-        })
+      const res = await fetch('/api/customer/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
 
-      if (orderError) {
-        console.error('Gagal membuat pesanan:', orderError)
-        const message = (orderError as { message?: string } | null)?.message || ''
-        setError(message ? `Gagal membuat pesanan: ${message}` : 'Gagal membuat pesanan')
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        console.error('Gagal membuat pesanan:', j?.error || res.statusText)
+        setError(j?.error || 'Gagal membuat pesanan')
         return
       }
 
-      // Add order item
-      const { error: itemError } = await supabase
-        .from('order_items')
-        .insert({
-          order_id: orderId,
-          product_id: product.id,
-          quantity: quantity,
-          price_at_purchase: perCartonPrice,
-        })
-
-      if (itemError) {
-        setError('Gagal menambahkan item pesanan')
-        return
-      }
+      const { orderId } = await res.json()
 
       // Redirect to checkout
       router.push(`/checkout?orderId=${orderId}`)
