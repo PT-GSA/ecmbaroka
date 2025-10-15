@@ -48,6 +48,8 @@ export default function AdminCustomers() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(5)
   const supabase = createClient()
 
   const [createOpen, setCreateOpen] = useState(false)
@@ -192,7 +194,14 @@ export default function AdminCustomers() {
     }
 
     setFilteredCustomers(filtered)
+    setCurrentPage(1) // Reset to first page when filters change
   }, [customers, searchTerm, statusFilter])
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -241,102 +250,117 @@ export default function AdminCustomers() {
   const averageOrderValue = customers.length > 0 ? totalRevenue / customers.reduce((sum, c) => sum + c.totalOrders, 0) : 0
 
   return (
-    <div className="w-full space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Manajemen Pelanggan
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Kelola data dan aktivitas pelanggan
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Modern Header Section */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-indigo-600/10 rounded-3xl blur-3xl"></div>
+          <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+                      Manajemen Pelanggan
+                    </h1>
+                    <p className="text-gray-600 text-lg">Kelola data dan aktivitas pelanggan</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 text-sm font-medium">
+                  <Users className="w-4 h-4 mr-2" />
+                  Admin Panel
+                </Badge>
+                <Button onClick={() => setCreateOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tambah Pelanggan
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-            <Users className="w-4 h-4 mr-1" />
-            Admin Panel
-          </Badge>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Pelanggan
-          </Button>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Total Pelanggan</p>
+                <p className="text-2xl font-bold text-gray-900">{totalCustomers}</p>
+                <p className="text-xs text-gray-500">Semua pelanggan</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                <Star className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Pelanggan Aktif</p>
+                <p className="text-2xl font-bold text-green-600">{activeCustomers}</p>
+                <p className="text-xs text-gray-500">
+                  {totalCustomers > 0 ? Math.round((activeCustomers / totalCustomers) * 100) : 0}% dari total
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold text-purple-600">{formatCurrency(totalRevenue)}</p>
+                <p className="text-xs text-gray-500">Dari semua pelanggan</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                <ShoppingCart className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">AOV</p>
+                <p className="text-2xl font-bold text-orange-600">{formatCurrency(averageOrderValue)}</p>
+                <p className="text-xs text-gray-500">Average Order Value</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pelanggan</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{totalCustomers}</div>
-            <p className="text-xs text-muted-foreground">
-              Semua pelanggan
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pelanggan Aktif</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{activeCustomers}</div>
-            <p className="text-xs text-muted-foreground">
-              {totalCustomers > 0 ? Math.round((activeCustomers / totalCustomers) * 100) : 0}% dari total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">
-              Dari semua pelanggan
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">AOV</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-purple-600">{formatCurrency(averageOrderValue)}</div>
-            <p className="text-xs text-muted-foreground">
-              Average Order Value
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="mr-2 h-5 w-5" />
-            Filter & Pencarian
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+        {/* Filters */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <Filter className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Filter & Pencarian</h3>
+              <p className="text-sm text-gray-600">Cari dan filter pelanggan</p>
+            </div>
+          </div>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   placeholder="Cari berdasarkan nama, email, atau nomor telepon..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-12 bg-white/50 border-gray-200 focus:bg-white transition-all duration-200"
                 />
               </div>
             </div>
@@ -344,7 +368,7 @@ export default function AdminCustomers() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white h-12"
               >
                 <option value="all">Semua Status</option>
                 <option value="active">Aktif</option>
@@ -353,119 +377,195 @@ export default function AdminCustomers() {
               </select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Customers Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Pelanggan</CardTitle>
-          <CardDescription>
-            {filteredCustomers.length} dari {customers.length} pelanggan
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="ml-2 text-gray-600">Memuat data...</span>
-            </div>
-          ) : filteredCustomers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              Tidak ada data pelanggan yang ditemukan
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredCustomers.map((customer) => (
-                <div key={customer.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="w-12 h-12">
-                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold">
-                        {getInitials(customer.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <p className="font-medium">{customer.name}</p>
-                      </div>
-                      <div className="flex items-center space-x-4 mt-1">
-                        <div className="flex items-center space-x-1">
-                          <Mail className="w-3 h-3 text-gray-400" />
-                          <p className="text-sm text-gray-500">{customer.email}</p>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Phone className="w-3 h-3 text-gray-400" />
-                          <p className="text-sm text-gray-500">{customer.phone}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4 mt-1">
-                        <div className="flex items-center space-x-1">
-                          <MapPin className="w-3 h-3 text-gray-400" />
-                          <p className="text-xs text-gray-500">{customer.address}</p>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="w-3 h-3 text-gray-400" />
-                          <p className="text-xs text-gray-500">Bergabung: {formatDate(customer.joinDate)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-6">
-                    <div className="text-right">
-                      <div className="flex items-center space-x-4">
-                        <div>
-                          <p className="text-sm font-medium">{customer.totalOrders} pesanan</p>
-                          <p className="text-xs text-gray-500">Terakhir: {formatDate(customer.lastOrderDate)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">{formatCurrency(customer.totalSpent)}</p>
-                          <p className="text-xs text-gray-500">Total belanja</p>
-                        </div>
-                      </div>
-                    </div>
-                    {getStatusBadge(customer.status)}
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-green-600 border-green-600 hover:bg-green-50"
-                        onClick={() => {
-                          setSelectedCustomer(customer)
-                          setEditForm({
-                            id: customer.id,
-                            full_name: customer.name,
-                            phone: customer.phone === '-' ? '' : customer.phone,
-                            address: customer.address === '-' ? '' : customer.address,
-                            email: '',
-                            password: ''
-                          })
-                          setEditOpen(true)
-                        }}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 border-red-600 hover:bg-red-50"
-                        onClick={() => {
-                          setSelectedCustomer(customer)
-                          setDeleteOpen(true)
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
+        {/* Customers List */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-white" />
                 </div>
-              ))}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Daftar Pelanggan</h3>
+                  <p className="text-sm text-gray-600">
+                    Menampilkan {paginatedCustomers.length} dari {filteredCustomers.length} pelanggan
+                  </p>
+                </div>
+              </div>
+              <div className="text-sm text-gray-500">
+                Halaman {currentPage} dari {totalPages}
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+          
+          <div className="p-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3 text-gray-600">Memuat data...</span>
+              </div>
+            ) : paginatedCustomers.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Tidak ada pelanggan ditemukan</h3>
+                <p className="text-gray-600 mb-6">Belum ada pelanggan yang cocok dengan filter yang Anda pilih.</p>
+                <Button onClick={() => setCreateOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Tambah Pelanggan Pertama
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {paginatedCustomers.map((customer) => (
+                  <div key={customer.id} className="group bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-all duration-300 border border-gray-200 hover:border-gray-300 hover:shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <Avatar className="w-14 h-14">
+                          <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold text-lg">
+                            {getInitials(customer.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h4 className="font-semibold text-gray-900 text-lg">{customer.name}</h4>
+                            {getStatusBadge(customer.status)}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div className="flex items-center space-x-2">
+                              <Mail className="w-4 h-4 text-gray-400" />
+                              <span>{customer.email || 'Email tidak tersedia'}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Phone className="w-4 h-4 text-gray-400" />
+                              <span>{customer.phone}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              <span className="truncate">{customer.address}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="w-4 h-4 text-gray-400" />
+                              <span>Bergabung: {formatDate(customer.joinDate)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-6">
+                        <div className="text-right">
+                          <div className="space-y-1">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{customer.totalOrders} pesanan</p>
+                              <p className="text-xs text-gray-500">Terakhir: {formatDate(customer.lastOrderDate)}</p>
+                            </div>
+                            <div>
+                              <p className="text-lg font-semibold text-green-600">{formatCurrency(customer.totalSpent)}</p>
+                              <p className="text-xs text-gray-500">Total belanja</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                            onClick={() => {
+                              setSelectedCustomer(customer)
+                              setEditForm({
+                                id: customer.id,
+                                full_name: customer.name,
+                                phone: customer.phone === '-' ? '' : customer.phone,
+                                address: customer.address === '-' ? '' : customer.address,
+                                email: '',
+                                password: ''
+                              })
+                              setEditOpen(true)
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-600 hover:bg-red-50"
+                            onClick={() => {
+                              setSelectedCustomer(customer)
+                              setDeleteOpen(true)
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredCustomers.length)} dari {filteredCustomers.length} pelanggan
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Sebelumnya
+                </Button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-2 ${
+                        currentPage === page 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2"
+                >
+                  Selanjutnya
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Create Customer Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -653,6 +753,7 @@ export default function AdminCustomers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   )
 }

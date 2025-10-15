@@ -35,6 +35,8 @@ export default function AdminPayments() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [, setError] = useState<string>('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(5)
 
   const fetchPayments = useCallback(async () => {
     setLoading(true)
@@ -87,7 +89,14 @@ export default function AdminPayments() {
     }
 
     setFilteredPayments(filtered)
+    setCurrentPage(1) // Reset to first page when filters change
   }, [payments, searchTerm, statusFilter])
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedPayments = filteredPayments.slice(startIndex, endIndex)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -147,98 +156,113 @@ export default function AdminPayments() {
   const pendingCount = payments.filter(p => p.status === 'pending').length
 
   return (
-    <div className="w-full space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Manajemen Pembayaran
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Kelola dan monitor semua transaksi pembayaran
-          </p>
-        </div>
-        <Badge variant="secondary" className="bg-gradient-to-r from-green-500 to-blue-500 text-white">
-          <CreditCard className="w-4 h-4 mr-1" />
-          Admin Panel
-        </Badge>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pembayaran</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
-            <p className="text-xs text-muted-foreground">
-              Semua transaksi
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pembayaran Terverifikasi</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(verifiedAmount)}</div>
-            <p className="text-xs text-muted-foreground">
-              Transaksi berhasil
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Menunggu konfirmasi
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">
-              {payments.length > 0 && totalAmount > 0 ? Math.round((verifiedAmount / totalAmount) * 100) : 0}%
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Modern Header Section */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-indigo-600/10 rounded-3xl blur-3xl"></div>
+          <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                    <CreditCard className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+                      Manajemen Pembayaran
+                    </h1>
+                    <p className="text-gray-600 text-lg">Kelola dan monitor semua transaksi pembayaran</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 text-sm font-medium">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Admin Panel
+                </Badge>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Tingkat keberhasilan
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="mr-2 h-5 w-5" />
-            Filter & Pencarian
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Total Pembayaran</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalAmount)}</p>
+                <p className="text-xs text-gray-500">Semua transaksi</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Pembayaran Terverifikasi</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(verifiedAmount)}</p>
+                <p className="text-xs text-gray-500">Transaksi berhasil</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
+                <p className="text-xs text-gray-500">Menunggu konfirmasi</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {payments.length > 0 && totalAmount > 0 ? Math.round((verifiedAmount / totalAmount) * 100) : 0}%
+                </p>
+                <p className="text-xs text-gray-500">Tingkat keberhasilan</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <Filter className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Filter & Pencarian</h3>
+              <p className="text-sm text-gray-600">Cari dan filter pembayaran</p>
+            </div>
+          </div>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   placeholder="Cari berdasarkan ID, Order ID, atau nama customer..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-12 bg-white/50 border-gray-200 focus:bg-white transition-all duration-200"
                 />
               </div>
             </div>
@@ -246,7 +270,7 @@ export default function AdminPayments() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white h-12"
               >
                 <option value="all">Semua Status</option>
                 <option value="verified">Terverifikasi</option>
@@ -255,134 +279,226 @@ export default function AdminPayments() {
               </select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Payments Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Pembayaran</CardTitle>
-          <CardDescription>
-            {filteredPayments.length} dari {payments.length} pembayaran
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="ml-2 text-gray-600">Memuat data...</span>
-            </div>
-          ) : filteredPayments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              Tidak ada data pembayaran yang ditemukan
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredPayments.map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      {getStatusIcon(payment.status)}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <p className="font-medium">{payment.id}</p>
-                        <span className="text-gray-400">•</span>
-                        <p className="text-sm text-gray-600">Order: {payment.order_id}</p>
-                      </div>
-                      <p className="text-sm text-gray-500">{payment.customer_name}</p>
-                      <p className="text-xs text-gray-400">
-                        {payment.method} • {formatDate(payment.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <p className="font-semibold">{formatCurrency(payment.amount)}</p>
-                    </div>
-                    {getStatusBadge(payment.status)}
-                    <div className="flex space-x-2">
-                      {payment.status === 'pending' && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-green-600 border-green-600 hover:bg-green-50"
-                            onClick={async () => {
-                              setLoading(true)
-                              try {
-                                const { error } = await supabase
-                                  .from('payments')
-                                  .update({ status: 'verified' })
-                                  .eq('id', payment.id)
-                                if (!error) {
-                                  // also set order status to verified
-                                  await supabase
-                                    .from('orders')
-                                    .update({ status: 'verified' })
-                                    .eq('id', payment.order_id)
-                                  // trigger commission attribution (silent)
-                                  try {
-                                    await fetch(`/api/admin/orders/${payment.order_id}/commission`, {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' }
-                                    })
-                                  } catch {}
-                                  // send notification
-                                  try {
-                                    await fetch('/api/notifications', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ orderId: payment.order_id, status: 'verified' })
-                                    })
-                                  } catch {}
-                                  fetchPayments()
-                                }
-                              } finally {
-                                setLoading(false)
-                              }
-                            }}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-600 hover:bg-red-50"
-                            onClick={async () => {
-                              setLoading(true)
-                              try {
-                                const { error } = await supabase
-                                  .from('payments')
-                                  .update({ status: 'rejected' })
-                                  .eq('id', payment.id)
-                                if (!error) {
-                                  try {
-                                    await fetch('/api/notifications', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ orderId: payment.order_id, status: 'rejected' })
-                                    })
-                                  } catch {}
-                                  fetchPayments()
-                                }
-                              } finally {
-                                setLoading(false)
-                              }
-                            }}
-                          >
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
+        {/* Payments List */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-white" />
                 </div>
-              ))}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Daftar Pembayaran</h3>
+                  <p className="text-sm text-gray-600">
+                    Menampilkan {paginatedPayments.length} dari {filteredPayments.length} pembayaran
+                  </p>
+                </div>
+              </div>
+              <div className="text-sm text-gray-500">
+                Halaman {currentPage} dari {totalPages}
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+          
+          <div className="p-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3 text-gray-600">Memuat data...</span>
+              </div>
+            ) : paginatedPayments.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CreditCard className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Tidak ada pembayaran ditemukan</h3>
+                <p className="text-gray-600">Belum ada pembayaran yang cocok dengan filter yang Anda pilih.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {paginatedPayments.map((payment) => (
+                  <div key={payment.id} className="group bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-all duration-300 border border-gray-200 hover:border-gray-300 hover:shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                            payment.status === 'verified' ? 'bg-green-100' :
+                            payment.status === 'pending' ? 'bg-yellow-100' : 'bg-red-100'
+                          }`}>
+                            {getStatusIcon(payment.status)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h4 className="font-semibold text-gray-900 text-lg">{payment.id}</h4>
+                            <span className="text-gray-400">•</span>
+                            <p className="text-sm text-gray-600">Order: {payment.order_id}</p>
+                            {getStatusBadge(payment.status)}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">Customer:</span>
+                              <span>{payment.customer_name}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">Method:</span>
+                              <span>{payment.method}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">Tanggal:</span>
+                              <span>{formatDate(payment.created_at)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-6">
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-green-600">{formatCurrency(payment.amount)}</p>
+                          <p className="text-xs text-gray-500">Total pembayaran</p>
+                        </div>
+                        <div className="flex space-x-2">
+                          {payment.status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                onClick={async () => {
+                                  setLoading(true)
+                                  try {
+                                    const { error } = await supabase
+                                      .from('payments')
+                                      .update({ status: 'verified' })
+                                      .eq('id', payment.id)
+                                    if (!error) {
+                                      // also set order status to verified
+                                      await supabase
+                                        .from('orders')
+                                        .update({ status: 'verified' })
+                                        .eq('id', payment.order_id)
+                                      // trigger commission attribution (silent)
+                                      try {
+                                        await fetch(`/api/admin/orders/${payment.order_id}/commission`, {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' }
+                                        })
+                                      } catch {}
+                                      // send notification
+                                      try {
+                                        await fetch('/api/notifications', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ orderId: payment.order_id, status: 'verified' })
+                                        })
+                                      } catch {}
+                                      fetchPayments()
+                                    }
+                                  } finally {
+                                    setLoading(false)
+                                  }
+                                }}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 border-red-600 hover:bg-red-50"
+                                onClick={async () => {
+                                  setLoading(true)
+                                  try {
+                                    const { error } = await supabase
+                                      .from('payments')
+                                      .update({ status: 'rejected' })
+                                      .eq('id', payment.id)
+                                    if (!error) {
+                                      try {
+                                        await fetch('/api/notifications', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ orderId: payment.order_id, status: 'rejected' })
+                                        })
+                                      } catch {}
+                                      fetchPayments()
+                                    }
+                                  } finally {
+                                    setLoading(false)
+                                  }
+                                }}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredPayments.length)} dari {filteredPayments.length} pembayaran
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Sebelumnya
+                </Button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-2 ${
+                        currentPage === page 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2"
+                >
+                  Selanjutnya
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
