@@ -206,19 +206,8 @@ export default function LoginPage() {
                       <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-gray-200"></div>
                       </div>
-                      <div className="relative flex justify-center text-sm">
-                        <span className="px-4 bg-white text-gray-500">atau</span>
-                      </div>
                     </div>
 
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">
-                        Admin?{' '}
-                        <Link href="/admin-auth/login" className="text-green-600 hover:text-green-700 font-semibold hover:underline transition-colors">
-                          Login Admin
-                        </Link>
-                      </p>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
