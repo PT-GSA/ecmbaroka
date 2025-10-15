@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, type KeyboardEvent } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -388,124 +387,169 @@ export default function AdminReports() {
   const profitGrowth = profitMargin
 
   return (
-    <div className="w-full space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Laporan & Analitik
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Dashboard laporan lengkap untuk analisis bisnis
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Modern Header Section */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-indigo-600/10 rounded-3xl blur-3xl"></div>
+          <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+                      Laporan & Analitik
+                    </h1>
+                    <p className="text-gray-600 text-lg">Dashboard laporan lengkap untuk analisis bisnis</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 text-sm font-medium">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Admin Reports
+                </Badge>
+              </div>
+            </div>
+          </div>
         </div>
-        <Badge variant="secondary" className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
-          <BarChart3 className="w-4 h-4 mr-1" />
-          Admin Reports
-        </Badge>
-      </div>
 
-      <div id="reports-content">
+        <div id="reports-content">
 
-      {loading && (
-        <div className="p-3 text-sm text-blue-700 bg-blue-50 rounded">
-          Memuat data laporan...
+        {/* Loading and Error States */}
+        {loading && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-blue-200 shadow-lg p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center animate-spin">
+                <BarChart3 className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-blue-800">Memuat Data Laporan</h3>
+                <p className="text-blue-700 text-sm">Mohon tunggu sebentar...</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {errorMsg && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-red-200 shadow-lg p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-red-800">Gagal Memuat Data</h3>
+                <p className="text-red-700 text-sm">{errorMsg}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+                <div className="flex items-center mt-1">
+                  <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
+                  <span className="text-sm text-green-600 font-medium">+{revenueGrowth}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <ShoppingCart className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
+                <div className="flex items-center mt-1">
+                  <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
+                  <span className="text-sm text-green-600 font-medium">+{ordersGrowth}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Total Customers</p>
+                <p className="text-2xl font-bold text-gray-900">{totalCustomers}</p>
+                <div className="flex items-center mt-1">
+                  <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
+                  <span className="text-sm text-green-600 font-medium">+{customersGrowth}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">AOV</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(averageOrderValue)}</p>
+                <p className="text-xs text-gray-500 mt-1">Average Order Value</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Profit Margin</p>
+                <p className="text-2xl font-bold text-emerald-600">{profitMargin}%</p>
+                <div className="flex items-center mt-1">
+                  <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
+                  <span className="text-sm text-green-600 font-medium">+{profitGrowth}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-      {errorMsg && (
-        <div className="p-3 text-sm text-red-700 bg-red-50 rounded">
-          {errorMsg}
-        </div>
-      )}
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-            <div className="flex items-center mt-1">
-              <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
-              <p className="text-xs text-green-600">+{revenueGrowth}%</p>
+        {/* Filters and Export */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <Filter className="w-5 h-5 text-white" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{totalOrders}</div>
-            <div className="flex items-center mt-1">
-              <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
-              <p className="text-xs text-green-600">+{ordersGrowth}%</p>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Filter & Export</h3>
+              <p className="text-sm text-gray-600">Atur periode dan ekspor laporan</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{totalCustomers}</div>
-            <div className="flex items-center mt-1">
-              <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
-              <p className="text-xs text-green-600">+{customersGrowth}%</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">AOV</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{formatCurrency(averageOrderValue)}</div>
-            <p className="text-xs text-muted-foreground">
-              Average Order Value
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{profitMargin}%</div>
-            <div className="flex items-center mt-1">
-              <ArrowUpRight className="w-3 h-3 text-green-500 mr-1" />
-              <p className="text-xs text-green-600">+{profitGrowth}%</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Export */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="mr-2 h-5 w-5" />
-            Filter & Export
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 flex gap-4">
-              <div className="md:w-48">
+          </div>
+          
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex-1 flex flex-col sm:flex-row gap-4">
+              <div className="sm:w-48">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Periode</label>
                 <select
                   value={periodFilter}
                   onChange={(e) => setPeriodFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 >
                   <option value="1">Hari Ini</option>
                   <option value="7">7 Hari Terakhir</option>
@@ -514,32 +558,38 @@ export default function AdminReports() {
                   <option value="365">1 Tahun Terakhir</option>
                 </select>
               </div>
-              <div className="flex gap-2">
-                <Input
-                  type="date"
-                  placeholder="Dari"
-                  value={dateRange.start}
-                  onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                  className="w-full sm:w-40"
-                />
-                <Input
-                  type="date"
-                  placeholder="Sampai"
-                  value={dateRange.end}
-                  onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                  className="w-full sm:w-40"
-                />
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
+                  <Input
+                    type="date"
+                    placeholder="Dari"
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                    className="w-full sm:w-40"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
+                  <Input
+                    type="date"
+                    placeholder="Sampai"
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                    className="w-full sm:w-40"
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 variant={compact ? 'secondary' : 'outline'}
                 onClick={() => setCompact(v => !v)}
                 aria-pressed={compact}
-                className="text-gray-700 hover:bg-gray-50"
+                className="text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                 title="Tampilkan tampilan ringkas untuk grafik"
               >
-                <Minimize2 className="w-4 h-4 mr-2" />
+                <Minimize2 className="w-4 h-4" />
                 {compact ? 'Tampilan Ringkas: Aktif' : 'Tampilan Ringkas'}
               </Button>
               <ReportsExportButton
@@ -559,88 +609,91 @@ export default function AdminReports() {
                 formatted={{ currency: formatCurrency, percent }}
                 fileName={`Laporan-${new Date().toISOString().slice(0,10)}.pdf`}
               />
-              <Button onClick={handleExportExcel} variant="outline" className="text-green-600 border-green-600 hover:bg-green-50">
-                <Download className="w-4 h-4 mr-2" />
+              <Button onClick={handleExportExcel} variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 flex items-center gap-2">
+                <Download className="w-4 h-4" />
                 Export Excel
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Tab Navigation */}
-      <div
-        className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto"
-        role="tablist"
-        aria-label="Laporan Tabs"
-        aria-orientation="horizontal"
-      >
-        <button
-          id="tabbtn-sales"
-          role="tab"
-          aria-selected={activeTab === 'sales'}
-          aria-controls="tab-sales"
-          tabIndex={activeTab === 'sales' ? 0 : -1}
-          onKeyDown={(e) => handleTabKeyDown(e, 'sales')}
-          onClick={() => setActiveTab('sales')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            activeTab === 'sales'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4 mr-2 inline" />
-          Laporan Penjualan
-        </button>
-        <button
-          id="tabbtn-customers"
-          role="tab"
-          aria-selected={activeTab === 'customers'}
-          aria-controls="tab-customers"
-          tabIndex={activeTab === 'customers' ? 0 : -1}
-          onKeyDown={(e) => handleTabKeyDown(e, 'customers')}
-          onClick={() => setActiveTab('customers')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            activeTab === 'customers'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <Users className="w-4 h-4 mr-2 inline" />
-          Laporan Pelanggan
-        </button>
-        <button
-          id="tabbtn-financial"
-          role="tab"
-          aria-selected={activeTab === 'financial'}
-          aria-controls="tab-financial"
-          tabIndex={activeTab === 'financial' ? 0 : -1}
-          onKeyDown={(e) => handleTabKeyDown(e, 'financial')}
-          onClick={() => setActiveTab('financial')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            activeTab === 'financial'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <DollarSign className="w-4 h-4 mr-2 inline" />
-          Laporan Keuangan
-        </button>
-      </div>
+        {/* Tab Navigation */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-2">
+          <div
+            className="flex space-x-1 bg-gray-100 p-1 rounded-xl overflow-x-auto"
+            role="tablist"
+            aria-label="Laporan Tabs"
+            aria-orientation="horizontal"
+          >
+            <button
+              id="tabbtn-sales"
+              role="tab"
+              aria-selected={activeTab === 'sales'}
+              aria-controls="tab-sales"
+              tabIndex={activeTab === 'sales' ? 0 : -1}
+              onKeyDown={(e) => handleTabKeyDown(e, 'sales')}
+              onClick={() => setActiveTab('sales')}
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                activeTab === 'sales'
+                  ? 'bg-white text-blue-600 shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 mr-2 inline" />
+              Laporan Penjualan
+            </button>
+            <button
+              id="tabbtn-customers"
+              role="tab"
+              aria-selected={activeTab === 'customers'}
+              aria-controls="tab-customers"
+              tabIndex={activeTab === 'customers' ? 0 : -1}
+              onKeyDown={(e) => handleTabKeyDown(e, 'customers')}
+              onClick={() => setActiveTab('customers')}
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                activeTab === 'customers'
+                  ? 'bg-white text-blue-600 shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Users className="w-4 h-4 mr-2 inline" />
+              Laporan Pelanggan
+            </button>
+            <button
+              id="tabbtn-financial"
+              role="tab"
+              aria-selected={activeTab === 'financial'}
+              aria-controls="tab-financial"
+              tabIndex={activeTab === 'financial' ? 0 : -1}
+              onKeyDown={(e) => handleTabKeyDown(e, 'financial')}
+              onClick={() => setActiveTab('financial')}
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                activeTab === 'financial'
+                  ? 'bg-white text-blue-600 shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <DollarSign className="w-4 h-4 mr-2 inline" />
+              Laporan Keuangan
+            </button>
+          </div>
+        </div>
 
-      {/* Tab Content */}
-      {activeTab === 'sales' && (
-        <section role="tabpanel" id="tab-sales" aria-labelledby="tabbtn-sales" className="space-y-4">
-          {/* Sales Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Trend Penjualan</CardTitle>
-              <CardDescription>
-                Grafik penjualan harian untuk {periodFilter} hari terakhir
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="h-48 sm:h-64 overflow-hidden" style={{ touchAction: 'pan-y' }}>
+        {/* Tab Content */}
+        {activeTab === 'sales' && (
+          <section role="tabpanel" id="tab-sales" aria-labelledby="tabbtn-sales" className="space-y-6">
+            {/* Sales Chart */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Trend Penjualan</h3>
+                  <p className="text-sm text-gray-600">Grafik penjualan harian untuk {periodFilter} hari terakhir</p>
+                </div>
+              </div>
+              <div className="h-64 overflow-hidden" style={{ touchAction: 'pan-y' }}>
                 <div className="w-full flex items-end justify-between gap-1 sm:gap-2">
                   {salesData.map((data, index) => {
                     const maxRevenue = Math.max(...salesData.map(d => d.revenue))
@@ -649,7 +702,7 @@ export default function AdminReports() {
                     return (
                       <div key={index} className="flex flex-col items-center flex-1">
                         <div
-                          className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t transition-all duration-300 hover:from-blue-600 hover:to-blue-400"
+                          className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t-lg transition-all duration-300 hover:from-blue-600 hover:to-blue-400 hover:shadow-lg"
                           style={{ height: `${height}px` }}
                         ></div>
                         <div className="text-[10px] sm:text-xs text-gray-500 mt-2 transform -rotate-45 origin-left">
@@ -660,65 +713,67 @@ export default function AdminReports() {
                   })}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Top Products */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Top 5 Produk Terlaris</CardTitle>
-              <CardDescription>
-                Produk dengan penjualan tertinggi
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4">
+            {/* Top Products */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Top 5 Produk Terlaris</h3>
+                  <p className="text-sm text-gray-600">Produk dengan penjualan tertinggi</p>
+                </div>
+              </div>
               <div className="space-y-4">
                 {productData.map((product, index) => {
                   const maxSales = Math.max(...productData.map(p => p.sales))
                   const percentage = (product.sales / maxSales) * 100
                   return (
-                    <div key={product.id} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-semibold text-blue-600">
+                    <div key={product.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-sm font-semibold text-white">
                           {index + 1}
                         </div>
                         <div>
-                          <p className="font-medium">{product.name}</p>
+                          <p className="font-medium text-gray-900">{product.name}</p>
                           <p className="text-sm text-gray-500">{product.sales} terjual</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-4">
-                        <div className="w-24 sm:w-32 bg-gray-200 rounded-full h-2">
+                        <div className="w-32 bg-gray-200 rounded-full h-3">
                           <div
-                            className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-300"
                             style={{ width: `${percentage}%` }}
                           ></div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold">{formatCurrency(product.revenue)}</p>
+                          <p className="font-semibold text-gray-900">{formatCurrency(product.revenue)}</p>
                         </div>
                       </div>
                     </div>
                   )
                 })}
               </div>
-            </CardContent>
-          </Card>
-        </section>
-      )}
+            </div>
+          </section>
+        )}
 
-      {activeTab === 'customers' && (
-        <section role="tabpanel" id="tab-customers" aria-labelledby="tabbtn-customers" className="space-y-4">
-          {/* Customer Growth */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Pertumbuhan Pelanggan</CardTitle>
-              <CardDescription>
-                Jumlah pelanggan baru per bulan
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="h-48 sm:h-64 overflow-x-auto">
+        {activeTab === 'customers' && (
+          <section role="tabpanel" id="tab-customers" aria-labelledby="tabbtn-customers" className="space-y-6">
+            {/* Customer Growth */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Pertumbuhan Pelanggan</h3>
+                  <p className="text-sm text-gray-600">Jumlah pelanggan baru per bulan</p>
+                </div>
+              </div>
+              <div className="h-64 overflow-x-auto">
                 <div className="min-w-[640px] flex items-end justify-between gap-2">
                   {(monthlyCustomers.length > 0 ? monthlyCustomers.map(mc => mc.count) : [0]).map((count, index) => {
                     const maxCount = Math.max(...(monthlyCustomers.length > 0 ? monthlyCustomers.map(mc => mc.count) : [1]))
@@ -727,7 +782,7 @@ export default function AdminReports() {
                     return (
                       <div key={index} className="flex flex-col items-center flex-1">
                         <div
-                          className="w-full bg-gradient-to-t from-purple-500 to-purple-300 rounded-t transition-all duration-300 hover:from-purple-600 hover:to-purple-400"
+                          className="w-full bg-gradient-to-t from-purple-500 to-purple-300 rounded-t-lg transition-all duration-300 hover:from-purple-600 hover:to-purple-400 hover:shadow-lg"
                           style={{ height: `${height}px` }}
                         ></div>
                         <div className="text-xs text-gray-500 mt-2">{monthlyCustomers[index]?.month ?? ''}</div>
@@ -737,19 +792,20 @@ export default function AdminReports() {
                   })}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Customer Segmentation */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Segmentasi Pelanggan</CardTitle>
-                <CardDescription>
-                  Distribusi pelanggan berdasarkan kategori
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
+            {/* Customer Segmentation */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Segmentasi Pelanggan</h3>
+                    <p className="text-sm text-gray-600">Distribusi pelanggan berdasarkan kategori</p>
+                  </div>
+                </div>
                 <div className="space-y-4">
                   {(() => {
                     const total = customerData.length || 1
@@ -759,74 +815,76 @@ export default function AdminReports() {
                     const pct = (n: number) => Math.round((n / total) * 100)
                     return (
                       <>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                          <div className="flex items-center space-x-3">
                             <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                            <span className="text-sm">Pelanggan Baru</span>
+                            <span className="text-sm font-medium">Pelanggan Baru</span>
                           </div>
-                          <span className="font-semibold">{pct(countNew)}%</span>
+                          <span className="font-semibold text-gray-900">{pct(countNew)}%</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                          <div className="flex items-center space-x-3">
                             <div className="w-4 h-4 bg-green-500 rounded"></div>
-                            <span className="text-sm">Pelanggan Reguler</span>
+                            <span className="text-sm font-medium">Pelanggan Reguler</span>
                           </div>
-                          <span className="font-semibold">{pct(countRegular)}%</span>
+                          <span className="font-semibold text-gray-900">{pct(countRegular)}%</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                          <div className="flex items-center space-x-3">
                             <div className="w-4 h-4 bg-purple-500 rounded"></div>
-                            <span className="text-sm">Pelanggan VIP</span>
+                            <span className="text-sm font-medium">Pelanggan VIP</span>
                           </div>
-                          <span className="font-semibold">{pct(countVip)}%</span>
+                          <span className="font-semibold text-gray-900">{pct(countVip)}%</span>
                         </div>
                       </>
                     )
                   })()}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Pelanggan</CardTitle>
-                <CardDescription>
-                  Pelanggan dengan nilai transaksi tertinggi
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Top Pelanggan</h3>
+                    <p className="text-sm text-gray-600">Pelanggan dengan nilai transaksi tertinggi</p>
+                  </div>
+                </div>
                 <div className="space-y-3">
                   {customerData.slice(0, 5).map((customer) => (
-                    <div key={customer.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={customer.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                       <div>
-                        <p className="font-medium">{customer.name}</p>
+                        <p className="font-medium text-gray-900">{customer.name}</p>
                         <p className="text-sm text-gray-500">{customer.orders} pesanan</p>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold">{formatCurrency(customer.totalSpent)}</span>
+                      <div className="flex items-center space-x-3">
+                        <span className="font-semibold text-gray-900">{formatCurrency(customer.totalSpent)}</span>
                         {getSegmentBadge(customer.segment)}
                       </div>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-      )}
+              </div>
+            </div>
+          </section>
+        )}
 
-      {activeTab === 'financial' && (
-        <section role="tabpanel" id="tab-financial" aria-labelledby="tabbtn-financial" className="space-y-4">
-          {/* Revenue vs Costs */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue vs Biaya</CardTitle>
-              <CardDescription>
-                Perbandingan pendapatan dan biaya operasional
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="h-48 sm:h-64 overflow-x-auto">
+        {activeTab === 'financial' && (
+          <section role="tabpanel" id="tab-financial" aria-labelledby="tabbtn-financial" className="space-y-6">
+            {/* Revenue vs Costs */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Revenue vs Biaya</h3>
+                  <p className="text-sm text-gray-600">Perbandingan pendapatan dan biaya operasional</p>
+                </div>
+              </div>
+              <div className="h-64 overflow-x-auto">
                 <div className="min-w-[640px] flex items-end justify-between gap-2">
                   {financialData.map((data, index) => {
                     const maxValue = Math.max(...financialData.map(d => Math.max(d.revenue, d.costs)))
@@ -837,11 +895,11 @@ export default function AdminReports() {
                       <div key={index} className="flex flex-col items-center flex-1 space-y-1">
                         <div className="flex flex-col space-y-1 w-full">
                           <div
-                            className="w-full bg-gradient-to-t from-green-500 to-green-300 rounded-t transition-all duration-300"
+                            className="w-full bg-gradient-to-t from-green-500 to-green-300 rounded-t-lg transition-all duration-300 hover:from-green-600 hover:to-green-400 hover:shadow-lg"
                             style={{ height: `${revenueHeight}px` }}
                           ></div>
                           <div
-                            className="w-full bg-gradient-to-t from-red-500 to-red-300 rounded-b transition-all duration-300"
+                            className="w-full bg-gradient-to-t from-red-500 to-red-300 rounded-b-lg transition-all duration-300 hover:from-red-600 hover:to-red-400 hover:shadow-lg"
                             style={{ height: `${costHeight}px` }}
                           ></div>
                         </div>
@@ -851,34 +909,35 @@ export default function AdminReports() {
                   })}
                 </div>
               </div>
-              <div className="flex justify-center space-x-6 mt-4">
+              <div className="flex justify-center space-x-6 mt-6">
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 bg-green-500 rounded"></div>
-                  <span className="text-sm">Revenue</span>
+                  <span className="text-sm font-medium">Revenue</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 bg-red-500 rounded"></div>
-                  <span className="text-sm">Biaya</span>
+                  <span className="text-sm font-medium">Biaya</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Profit/Loss Statement */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profit/Loss Statement</CardTitle>
-                <CardDescription>
-                  Ringkasan keuangan bulanan
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
+            {/* Profit/Loss Statement */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Profit/Loss Statement</h3>
+                    <p className="text-sm text-gray-600">Ringkasan keuangan bulanan</p>
+                  </div>
+                </div>
                 <div className="space-y-3">
                   {financialData.slice(0, 6).map((data) => (
-                    <div key={data.month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={data.month} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                       <div>
-                        <p className="font-medium">{data.month}</p>
+                        <p className="font-medium text-gray-900">{data.month}</p>
                         <p className="text-sm text-gray-500">Margin: {data.profitMargin}%</p>
                       </div>
                       <div className="text-right">
@@ -888,36 +947,37 @@ export default function AdminReports() {
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-            <CardHeader>
-              <CardTitle>Payment Methods</CardTitle>
-              <CardDescription>
-                Distribusi metode pembayaran
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="space-y-4">
-                {paymentDistribution.length === 0 && (
-                  <div className="text-sm text-gray-500">Belum ada pembayaran terverifikasi pada periode ini</div>
-                )}
-                {paymentDistribution.map((p) => (
-                  <div key={p.label} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                      <span className="text-sm">{p.label}</span>
-                    </div>
-                    <span className="font-semibold">{p.percent}%</span>
-                  </div>
-                ))}
               </div>
-            </CardContent>
-            </Card>
-          </div>
-        </section>
-      )}
+
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Payment Methods</h3>
+                    <p className="text-sm text-gray-600">Distribusi metode pembayaran</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {paymentDistribution.length === 0 && (
+                    <div className="text-sm text-gray-500 text-center py-4">Belum ada pembayaran terverifikasi pada periode ini</div>
+                  )}
+                  {paymentDistribution.map((p) => (
+                    <div key={p.label} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                        <span className="text-sm font-medium">{p.label}</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">{p.percent}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+        </div>
       </div>
     </div>
   )
