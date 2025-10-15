@@ -16,6 +16,7 @@ import {
   Clock
 } from 'lucide-react'
 import Link from 'next/link'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -114,10 +115,17 @@ export default function AdminDashboard() {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOrders}</div>
-            <p className="text-xs text-muted-foreground">
-              +12% dari bulan lalu
-            </p>
+            {loading ? (
+              <>
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-3 w-32 mt-2" />
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.totalOrders}</div>
+                <p className="text-xs text-muted-foreground">+12% dari bulan lalu</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -127,10 +135,17 @@ export default function AdminDashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalProducts}</div>
-            <p className="text-xs text-muted-foreground">
-              Produk aktif
-            </p>
+            {loading ? (
+              <>
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-3 w-24 mt-2" />
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.totalProducts}</div>
+                <p className="text-xs text-muted-foreground">Produk aktif</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -140,10 +155,17 @@ export default function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
-            <p className="text-xs text-muted-foreground">
-              +8% dari bulan lalu
-            </p>
+            {loading ? (
+              <>
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-3 w-32 mt-2" />
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+                <p className="text-xs text-muted-foreground">+8% dari bulan lalu</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -153,10 +175,17 @@ export default function AdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">
-              +15% dari bulan lalu
-            </p>
+            {loading ? (
+              <>
+                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-3 w-36 mt-2" />
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
+                <p className="text-xs text-muted-foreground">+15% dari bulan lalu</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -174,12 +203,18 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-600">{stats.pendingOrders}</div>
-            <Button variant="outline" asChild className="mt-4 w-full">
-              <Link href="/admin/orders">
-                Kelola Pesanan
-              </Link>
-            </Button>
+            {loading ? (
+              <Skeleton className="h-9 w-24" />
+            ) : (
+              <div className="text-3xl font-bold text-orange-600">{stats.pendingOrders}</div>
+            )}
+            {loading ? (
+              <Skeleton className="h-9 w-full mt-4" />
+            ) : (
+              <Button variant="outline" asChild className="mt-4 w-full">
+                <Link href="/admin/orders">Kelola Pesanan</Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
 
@@ -194,12 +229,18 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">{stats.completedOrders}</div>
-            <Button variant="outline" asChild className="mt-4 w-full">
-              <Link href="/admin/orders">
-                Lihat Riwayat
-              </Link>
-            </Button>
+            {loading ? (
+              <Skeleton className="h-9 w-24" />
+            ) : (
+              <div className="text-3xl font-bold text-green-600">{stats.completedOrders}</div>
+            )}
+            {loading ? (
+              <Skeleton className="h-9 w-full mt-4" />
+            ) : (
+              <Button variant="outline" asChild className="mt-4 w-full">
+                <Link href="/admin/orders">Lihat Riwayat</Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
 
@@ -214,20 +255,28 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm">Pesanan</span>
-                <span className="text-sm font-medium text-green-600">+12%</span>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-2/3" />
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Pelanggan</span>
-                <span className="text-sm font-medium text-green-600">+8%</span>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm">Pesanan</span>
+                  <span className="text-sm font-medium text-green-600">+12%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Pelanggan</span>
+                  <span className="text-sm font-medium text-green-600">+8%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Pendapatan</span>
+                  <span className="text-sm font-medium text-green-600">+15%</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Pendapatan</span>
-                <span className="text-sm font-medium text-green-600">+15%</span>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -272,10 +321,23 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {loading && (
+                <>
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                      <Skeleton className="h-6 w-20 rounded" />
+                    </div>
+                  ))}
+                </>
+              )}
               {recentOrders.length === 0 && !loading && (
                 <div className="text-sm text-gray-600">Belum ada pesanan terbaru.</div>
               )}
-              {recentOrders.map((o) => {
+              {!loading && recentOrders.map((o) => {
                 const statusLabel = (() => {
                   switch (o.status) {
                     case 'pending': return 'Pending'
@@ -325,14 +387,24 @@ export default function AdminDashboard() {
         <CardContent>
           <div className="space-y-3">
             {loading && (
-              <div className="text-sm text-gray-700">Memuat peringatan...</div>
+              <>
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="flex items-center p-3 bg-white rounded-lg border border-yellow-200">
+                    <Skeleton className="h-4 w-4 mr-3 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-48" />
+                      <Skeleton className="h-3 w-64" />
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
             {!loading && lowStockProducts.length === 0 && pendingPaymentsCount === 0 && (
               <div className="text-sm text-gray-600">Tidak ada peringatan saat ini.</div>
             )}
 
             {/* Low stock alerts */}
-            {lowStockProducts.map((p) => (
+            {!loading && lowStockProducts.map((p) => (
               <div key={p.id} className="flex items-center p-3 bg-white rounded-lg border border-yellow-200">
                 <AlertCircle className="h-4 w-4 text-yellow-500 mr-3" />
                 <div className="flex-1">
@@ -343,7 +415,7 @@ export default function AdminDashboard() {
             ))}
 
             {/* Pending payments alerts */}
-            {pendingPaymentsCount > 0 && (
+            {!loading && pendingPaymentsCount > 0 && (
               <div className="flex items-center p-3 bg-white rounded-lg border border-blue-200">
                 <CheckCircle className="h-4 w-4 text-blue-500 mr-3" />
                 <div className="flex-1">
