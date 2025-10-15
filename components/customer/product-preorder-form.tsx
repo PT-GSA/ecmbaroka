@@ -105,6 +105,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
 
       // Read affiliate id from cookie (if any)
       let affiliateId: string | null = null
+      let affiliateLinkId: string | null = null
       try {
         const cookieStr = typeof document !== 'undefined' ? document.cookie : ''
         const cookiesObj = Object.fromEntries(
@@ -118,6 +119,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
             })
         ) as Record<string, string>
         affiliateId = cookiesObj['afid'] ?? null
+        affiliateLinkId = cookiesObj['aflid'] ?? null
       } catch {}
 
       // Try to prefill shipping info from user profile
@@ -146,6 +148,7 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
           shipping_address: addressPrefill || '-', // Will be filled in checkout
           phone: phonePrefill || '-', // Will be filled in checkout
           affiliate_id: affiliateId ?? undefined,
+          affiliate_link_id: affiliateLinkId ?? undefined,
         })
 
       if (orderError) {

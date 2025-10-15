@@ -64,14 +64,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     const trimmed = commissionRaw?.toString().trim();
     if (trimmed && trimmed.length > 0) {
       const commission = Number(trimmed);
-      if (Number.isNaN(commission) || commission < 0 || commission > 100) {
+      if (Number.isNaN(commission) || commission < 0) {
         return NextResponse.redirect(new URL("/admin/affiliates?error=invalid_commission", req.url));
       }
-      // store as numeric percentage
+      // store as nominal per-carton amount (Rupiah)
       updatePayload.commission_rate = commission;
     } else {
-      // empty input sets commission to 0
-      updatePayload.commission_rate = 0;
+      // empty input keeps current or sets to default 10,800
+      updatePayload.commission_rate = 10800;
     }
   }
 

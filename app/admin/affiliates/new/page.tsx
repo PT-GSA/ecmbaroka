@@ -73,8 +73,8 @@ export default async function NewAffiliatePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="commission_rate">Komisi (%)</Label>
-              <Input id="commission_rate" name="commission_rate" type="number" step="0.01" min="0" max="100" placeholder="contoh: 10 atau 12.5" />
+              <Label htmlFor="commission_rate">Komisi (Rp/karton)</Label>
+              <Input id="commission_rate" name="commission_rate" type="number" step="1" min="0" placeholder="contoh: 10800" />
             </div>
 
             <div className="flex justify-end gap-3">

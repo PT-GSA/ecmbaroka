@@ -62,9 +62,10 @@ export async function POST(req: NextRequest) {
       const v = commissionRaw?.toString().trim()
       if (v && v.length > 0) {
         const num = Number(v)
-        if (!Number.isNaN(num) && num >= 0 && num <= 100) return num
+        if (!Number.isNaN(num) && num >= 0) return num
       }
-      return undefined
+      // default nominal commission per carton
+      return 10800
     })()
   }
 

@@ -5,6 +5,7 @@ import type { Database } from '@/types/database'
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const slug = url.searchParams.get('slug') || url.searchParams.get('link') || ''
+  const to = url.searchParams.get('to') || '/products'
 
   const service = createServiceClient()
 
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
     return res
   }
 
-  // Record click with minimal info
+  // Record click with minimal info (dedup by affiliate_id + ua_hash + ip_hash)
   try {
     const ua = req.headers.get('user-agent') || ''
     const referer = req.headers.get('referer') || ''
@@ -36,27 +37,40 @@ export async function GET(req: NextRequest) {
     // Hash IP to avoid storing raw IP
     const ipHash = await hashIp(ip)
     const uaHash = await hashIp(ua)
-
-    const insertBuilder = service.from('affiliate_clicks') as unknown as {
-      insert: (values: Database['public']['Tables']['affiliate_clicks']['Insert']) => Promise<{ error: unknown }>
+    const upsertBuilder = service.from('affiliate_clicks') as unknown as {
+      upsert: (
+        values: Database['public']['Tables']['affiliate_clicks']['Insert'],
+        options?: { onConflict?: string; ignoreDuplicates?: boolean }
+      ) => Promise<{ error: unknown }>
     }
-    await insertBuilder.insert({
-      affiliate_id: link.affiliate_id,
-      campaign: link.campaign ?? null,
-      referrer: referer,
-      ua_hash: uaHash,
-      ip_hash: ipHash,
-    })
+    await upsertBuilder.upsert(
+      {
+        affiliate_id: link.affiliate_id,
+        campaign: link.campaign ?? null,
+        referrer: referer,
+        ua_hash: uaHash,
+        ip_hash: ipHash,
+      },
+      { onConflict: 'affiliate_id,ua_hash,ip_hash', ignoreDuplicates: true }
+    )
   } catch (e) {
     // Non-blocking; proceed with redirect even if logging fails
     console.error('Affiliate click log error:', e)
   }
 
   // Set 30-day cookie for attribution
-  // Redirect to products (no target_url in schema)
-  const res = NextResponse.redirect(new URL('/products', url.origin))
+  // Redirect to destination (defaults to products)
+  const res = NextResponse.redirect(new URL(to, url.origin))
   const maxAge = 60 * 60 * 24 * 30 // 30 days
   res.cookies.set('afid', String(link.affiliate_id), {
+    maxAge,
+    path: '/',
+    sameSite: 'lax',
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+  })
+  // Store affiliate_link_id cookie for precise link attribution
+  res.cookies.set('aflid', String(link.id), {
     maxAge,
     path: '/',
     sameSite: 'lax',

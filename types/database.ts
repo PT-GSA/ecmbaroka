@@ -58,6 +58,7 @@ export interface Database {
           phone: string
           notes: string | null
           affiliate_id: string | null
+          affiliate_link_id: string | null
           commission_rate: number
           commission_amount: number
           commission_calculated_at: string | null
@@ -72,6 +73,7 @@ export interface Database {
           phone: string
           notes?: string | null
           affiliate_id?: string | null
+          affiliate_link_id?: string | null
           commission_rate?: number
           commission_amount?: number
           commission_calculated_at?: string | null
@@ -86,6 +88,7 @@ export interface Database {
           phone?: string
           notes?: string | null
           affiliate_id?: string | null
+          affiliate_link_id?: string | null
           commission_rate?: number
           commission_amount?: number
           commission_calculated_at?: string | null

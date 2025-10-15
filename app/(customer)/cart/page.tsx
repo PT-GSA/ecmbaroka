@@ -122,6 +122,7 @@ export default function CartPage() {
 
       // Read affiliate cookies (set via /api/affiliate/track)
       let affiliateId: string | null = null
+      let affiliateLinkId: string | null = null
       try {
         // Next.js app router client: read document.cookie in client component
         const cookieStr = typeof document !== 'undefined' ? document.cookie : ''
@@ -136,6 +137,7 @@ export default function CartPage() {
             })
         ) as Record<string, string>
         affiliateId = cookiesObj['afid'] ?? null
+        affiliateLinkId = cookiesObj['aflid'] ?? null
       } catch {}
 
       // Create order without returning representation to avoid RLS SELECT recursion
@@ -150,6 +152,7 @@ export default function CartPage() {
           shipping_address: '-', // Will be filled in checkout
           phone: '-', // Will be filled in checkout
           affiliate_id: affiliateId ?? undefined,
+          affiliate_link_id: affiliateLinkId ?? undefined,
         })
 
       if (orderError) {

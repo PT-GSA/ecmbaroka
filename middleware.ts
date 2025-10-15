@@ -31,6 +31,30 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Affiliate tracking: catch ?slug / ?link and redirect to tracking route
+  try {
+    const url = request.nextUrl
+    // Only trigger tracking when a valid slug/link is present.
+    // "aff" (affiliate code) alone should not trigger tracking.
+    const slugParam = url.searchParams.get('slug') || url.searchParams.get('link')
+    const isTrackingRoute = url.pathname.startsWith('/api/affiliate/track')
+    if (slugParam && !isTrackingRoute) {
+      // Build destination without the affiliate params
+      const cleanUrl = new URL(url.origin + url.pathname)
+      const paramsToKeep = new URLSearchParams(url.searchParams)
+      paramsToKeep.delete('aff')
+      paramsToKeep.delete('slug')
+      paramsToKeep.delete('link')
+      const queryStr = paramsToKeep.toString()
+      if (queryStr) cleanUrl.search = queryStr
+
+      const trackUrl = new URL(`/api/affiliate/track`, url.origin)
+      trackUrl.searchParams.set('slug', slugParam)
+      trackUrl.searchParams.set('to', cleanUrl.pathname + (cleanUrl.search || ''))
+      return NextResponse.redirect(trackUrl)
+    }
+  } catch {}
+
   // Protected admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
     // Skip redirect for admin login page

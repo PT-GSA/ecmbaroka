@@ -56,7 +56,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   }
 
   // Resolve commission rate
-  let commissionRate = 0
+  // Resolve commission per carton (fixed nominal, in Rupiah)
+  let commissionPerCarton = 0
   if (order.affiliate_id) {
     const { data: affRow } = await service
       .from('affiliates')
@@ -64,19 +65,27 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       .eq('id', order.affiliate_id)
       .maybeSingle()
     const aff = affRow as Pick<Database['public']['Tables']['affiliates']['Row'], 'commission_rate'> | null
-    commissionRate = aff?.commission_rate ?? 0
-    // Clamp to 0..100
-    if (commissionRate < 0) commissionRate = 0
-    if (commissionRate > 100) commissionRate = 100
+    commissionPerCarton = Number(aff?.commission_rate ?? 0)
+    if (!Number.isFinite(commissionPerCarton) || commissionPerCarton < 0) commissionPerCarton = 0
+    // Default global commission if not set: 10,800 per carton
+    if (commissionPerCarton === 0) commissionPerCarton = 10800
   }
 
-  // Compute amount (rounded to 2 decimals)
-  const rawAmount = (order.total_amount || 0) * (commissionRate / 100)
+  // Compute total cartons from order_items
+  const { data: items } = await service
+    .from('order_items')
+    .select('quantity')
+    .eq('order_id', order.id)
+  const totalCartons = (items ?? []).reduce((sum, it: { quantity: number }) => sum + Number(it.quantity || 0), 0)
+
+  // Compute commission amount (rounded to 2 decimals)
+  const rawAmount = commissionPerCarton * totalCartons
   const commissionAmount = Math.round(rawAmount * 100) / 100
 
   // Persist commission attribution (ensure proper TS typing for update payload)
   const payload: Database['public']['Tables']['orders']['Update'] = {
-    commission_rate: commissionRate,
+    // Store per-carton nominal in commission_rate field for now
+    commission_rate: commissionPerCarton,
     commission_amount: commissionAmount,
     commission_calculated_at: new Date().toISOString(),
   }
@@ -93,5 +102,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Failed to update commission' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, commission_rate: commissionRate, commission_amount: commissionAmount })
+  return NextResponse.json({ ok: true, commission_rate: commissionPerCarton, commission_amount: commissionAmount, total_cartons: totalCartons })
 }
