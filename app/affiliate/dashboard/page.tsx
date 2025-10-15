@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import CopyInput from '@/components/ui/copy-input'
+import AffiliateLogoutButton from '@/components/affiliate/logout-button'
 
 type AffiliateRow = {
   id: string
@@ -54,7 +55,7 @@ export default async function AffiliateDashboardPage() {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    redirect('/login')
+    redirect('/affiliate/login')
   }
 
   // Ensure user is an active affiliate
@@ -232,6 +233,7 @@ export default async function AffiliateDashboardPage() {
               </svg>
               <span className="text-sm sm:text-base">Total Komisi <span className="tabular-nums">{formatCurrency(totalCommission)}</span></span>
             </div>
+            <AffiliateLogoutButton />
           </div>
         </div>
       </section>

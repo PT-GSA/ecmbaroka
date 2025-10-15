@@ -94,7 +94,7 @@ export async function middleware(request: NextRequest) {
 
 
   // Redirect authenticated users away from auth pages
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
+  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register' || request.nextUrl.pathname === '/affiliate/login')) {
     try {
       const { data: profile } = await supabase
         .from('user_profiles')
@@ -102,14 +102,37 @@ export async function middleware(request: NextRequest) {
         .eq('id', user.id)
         .single()
 
-      if (profile?.role === 'admin') {
-        return NextResponse.redirect(new URL('/admin/dashboard', request.url))
-      } else {
+      if (request.nextUrl.pathname === '/affiliate/login') {
+        // If visiting affiliate login and already authenticated, send active affiliates to their dashboard
+        const { data: affiliate } = await supabase
+          .from('affiliates')
+          .select('id, status')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle()
+
+        if (affiliate) {
+          return NextResponse.redirect(new URL('/affiliate/dashboard', request.url))
+        }
+        // Not an affiliate: send to home
         return NextResponse.redirect(new URL('/', request.url))
+      } else {
+        if (profile?.role === 'admin') {
+          return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+        } else {
+          return NextResponse.redirect(new URL('/', request.url))
+        }
       }
     } catch {
       // If profile doesn't exist yet, allow access to auth pages
       // This can happen during signup process
+    }
+  }
+
+  // Guard affiliate dashboard: require login
+  if (request.nextUrl.pathname.startsWith('/affiliate/dashboard')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/affiliate/login', request.url))
     }
   }
 
