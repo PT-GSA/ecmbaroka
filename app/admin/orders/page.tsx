@@ -1,13 +1,25 @@
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/types/database'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { ShoppingCart, Eye, Package, MapPin, Phone } from 'lucide-react'
+import { 
+  ShoppingCart, 
+  Eye, 
+  Package, 
+  MapPin, 
+  Phone, 
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Truck,
+  DollarSign
+} from 'lucide-react'
 
 interface OrderItem {
   id: string
@@ -37,119 +49,82 @@ interface Order {
 
 type UserProfileLite = Pick<Database['public']['Tables']['user_profiles']['Row'], 'id' | 'full_name' | 'phone'>
 
-export default async function AdminOrdersPage() {
-  const supabase = await createClient()
-  // Auth guard: ensure only admin can access
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Butuh Login</h1>
-        <p className="text-gray-600 mb-6">Silakan login untuk mengakses halaman ini.</p>
-        <Button asChild>
-          <Link href="/login">Login</Link>
-        </Button>
-      </div>
-    )
-  }
+export default function AdminOrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([])
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(5)
+  const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const supabase = createClient()
 
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const typedProfile = profile as Database['public']['Tables']['user_profiles']['Row'] | null
-  if (!typedProfile || typedProfile.role !== 'admin') {
-    return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Akses Ditolak</h1>
-        <p className="text-gray-600">Anda tidak memiliki akses ke halaman ini.</p>
-      </div>
-    )
-  }
-
-  const service = createServiceClient()
-  const ordersQuery = await service
-    .from('orders')
-    .select(`
-      id,
-      created_at,
-      status,
-      total_amount,
-      shipping_address,
-      phone,
-      notes,
-      user_id,
-      order_items (
-        id,
-        quantity,
-        price_at_purchase,
-        products (
-          name,
-          price
-        )
-      )
-    `)
-    .order('created_at', { ascending: false })
-
-  const { data: ordersData, error } = ordersQuery
-  if (error) {
-    console.error('Error fetching orders:', error?.message || error)
-  }
-
-  const rawOrders = (ordersData ?? []) as (Database['public']['Tables']['orders']['Row'] & {
-    order_items: (Database['public']['Tables']['order_items']['Row'] & {
-      products: Pick<Database['public']['Tables']['products']['Row'], 'name' | 'price'>
-    })[]
-  })[]
-
-  const userIds: string[] = Array.from(
-    new Set(
-      rawOrders
-        .map(o => o.user_id)
-        .filter((uid): uid is string => typeof uid === 'string' && uid.length > 0)
-    )
-  )
-  const profileMap = new Map<string, { full_name: string; phone: string | null }>()
-  if (userIds.length > 0) {
-    const profileRes = await service
-      .from('user_profiles')
-      .select('id, full_name, phone')
-      .in('id', userIds)
-    const profileError = profileRes.error
-    const profiles = (profileRes.data ?? []) as UserProfileLite[]
-    if (profileError) {
-      console.error('Error fetching profiles:', profileError?.message || profileError)
-    }
-    profiles.forEach((p) => {
-      profileMap.set(p.id, { full_name: p.full_name ?? '', phone: p.phone ?? null })
-    })
-  }
-
-  const orders: Order[] = rawOrders.map(o => ({
-    id: o.id,
-    created_at: o.created_at,
-    status: o.status,
-    total_amount: Number(o.total_amount),
-    shipping_address: o.shipping_address,
-    phone: o.phone ?? undefined,
-    notes: o.notes ?? undefined,
-    user_id: o.user_id,
-    user_profiles: profileMap.has(o.user_id) ? {
-      full_name: profileMap.get(o.user_id)!.full_name,
-      phone: profileMap.get(o.user_id)!.phone ?? ''
-    } : undefined,
-    order_items: o.order_items.map(oi => ({
-      id: oi.id,
-      quantity: oi.quantity,
-      price_at_purchase: Number(oi.price_at_purchase),
-      products: {
-        name: oi.products?.name ?? 'Produk',
-        price: Number(oi.products?.price ?? oi.price_at_purchase)
+  const fetchOrders = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/orders')
+      if (!res.ok) {
+        console.error('Error fetching orders')
+        setOrders([])
+      } else {
+        const json = await res.json()
+        const ordersData: Order[] = json?.orders ?? []
+        setOrders(ordersData)
+        setFilteredOrders(ordersData)
       }
-    }))
-  }))
+    } catch (error) {
+      console.error('Error fetching orders:', error)
+      setOrders([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setUser(null)
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      const typedProfile = profile as Database['public']['Tables']['user_profiles']['Row'] | null
+      if (typedProfile && typedProfile.role === 'admin') {
+        setUser(user)
+        setIsAdmin(true)
+        fetchOrders()
+      } else {
+        setUser(user)
+        setIsAdmin(false)
+      }
+    }
+
+    checkAuth()
+
+    // Realtime: refresh saat ada perubahan pada orders
+    const channel = supabase
+      .channel('admin-orders-list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchOrders()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchOrders, supabase])
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex)
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -168,112 +143,325 @@ export default async function AdminOrdersPage() {
 
   // SSR: no loading spinner needed
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Kelola Pesanan</h1>
-        <p className="text-gray-600">Mengelola dan melacak pesanan customer</p>
-      </div>
-
-      {orders && orders.length > 0 ? (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <Card key={order.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">
-                      Pesanan #{order.id.slice(-8)}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-4 mt-2">
-                      <span className="flex items-center gap-1">
-                        <Package className="h-4 w-4" />
-                        {order.user_profiles?.full_name || 'Unknown User'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {formatDate(order.created_at)}
-                      </span>
-                      <span className="text-lg font-semibold text-primary">
-                        {formatCurrency(order.total_amount)}
-                      </span>
-                    </CardDescription>
-                  </div>
-                  {getStatusBadge(order.status)}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Order Items */}
-                <div className="space-y-2">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <ShoppingCart className="h-4 w-4" />
-                    Produk
-                  </h4>
-                  <div className="space-y-1">
-                    {order.order_items.map((item: OrderItem) => (
-                      <div key={item.id} className="flex justify-between text-sm">
-                        <span>{item.products.name} x {item.quantity}</span>
-                        <span>{formatCurrency(item.products.price * item.quantity)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Shipping Info */}
-                <div className="space-y-2">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Alamat Pengiriman
-                  </h4>
-                  <p className="text-sm text-gray-600">{order.shipping_address}</p>
-                  {order.phone && (
-                    <p className="text-sm text-gray-600 flex items-center gap-1">
-                      <Phone className="h-4 w-4" />
-                      {order.phone}
-                    </p>
-                  )}
-                </div>
-
-                {order.notes && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Catatan</h4>
-                      <p className="text-sm text-gray-600">{order.notes}</p>
-                    </div>
-                  </>
-                )}
-
-                <Separator />
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" asChild className="hover:bg-green-500 hover:text-white">
-                    <Link href={`/admin/orders/${order.id}`}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      Lihat Detail
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+  // Auth guard checks
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-xl p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Butuh Login</h1>
+          <p className="text-gray-600 mb-6">Silakan login untuk mengakses halaman ini.</p>
+          <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+            <Link href="/login">Login</Link>
+          </Button>
         </div>
-      ) : (
-        <Card>
-          <CardContent className="text-center py-12">
-            <ShoppingCart className="h-24 w-24 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-600 mb-4">
-              Belum Ada Pesanan
-            </h2>
-            <p className="text-gray-500">
-              Belum ada pesanan dari customer
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-xl p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Akses Ditolak</h1>
+          <p className="text-gray-600">Anda tidak memiliki akses ke halaman ini.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Calculate stats
+  const totalOrders = orders.length
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0)
+  const pendingOrders = orders.filter(o => o.status === 'pending').length
+  const completedOrders = orders.filter(o => o.status === 'completed').length
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Modern Header Section */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-indigo-600/10 rounded-3xl blur-3xl"></div>
+          <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                    <ShoppingCart className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+                      Kelola Pesanan
+                    </h1>
+                    <p className="text-gray-600 text-lg">Mengelola dan melacak pesanan customer</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 text-sm font-medium">
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Admin Panel
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <ShoppingCart className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Total Pesanan</p>
+                <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
+                <p className="text-xs text-gray-500">Semua pesanan</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</p>
+                <p className="text-xs text-gray-500">Dari semua pesanan</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">{pendingOrders}</p>
+                <p className="text-xs text-gray-500">Menunggu pembayaran</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600">Selesai</p>
+                <p className="text-2xl font-bold text-purple-600">{completedOrders}</p>
+                <p className="text-xs text-gray-500">Pesanan selesai</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Orders List */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <Package className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Daftar Pesanan</h3>
+                  <p className="text-sm text-gray-600">
+                    Menampilkan {paginatedOrders.length} dari {filteredOrders.length} pesanan
+                  </p>
+                </div>
+              </div>
+              <div className="text-sm text-gray-500">
+                Halaman {currentPage} dari {totalPages}
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3 text-gray-600">Memuat data...</span>
+              </div>
+            ) : paginatedOrders.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ShoppingCart className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum Ada Pesanan</h3>
+                <p className="text-gray-600">Belum ada pesanan dari customer</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {paginatedOrders.map((order) => (
+                  <div key={order.id} className="group bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-all duration-300 border border-gray-200 hover:border-gray-300 hover:shadow-md">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+                          <Package className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 text-lg">Pesanan #{order.id.slice(-8)}</h4>
+                          <p className="text-sm text-gray-600">{formatDate(order.created_at)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-green-600">{formatCurrency(order.total_amount)}</p>
+                          <p className="text-xs text-gray-500">Total pesanan</p>
+                        </div>
+                        {getStatusBadge(order.status)}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Customer Info */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Package className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <h5 className="font-medium text-gray-900">Customer</h5>
+                        </div>
+                        <p className="text-sm text-gray-600 ml-10">
+                          {order.user_profiles?.full_name || 'Unknown User'}
+                        </p>
+                        {order.phone && (
+                          <p className="text-sm text-gray-600 ml-10 flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {order.phone}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Shipping Address */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                            <MapPin className="w-4 h-4 text-green-600" />
+                          </div>
+                          <h5 className="font-medium text-gray-900">Alamat Pengiriman</h5>
+                        </div>
+                        <p className="text-sm text-gray-600 ml-10">{order.shipping_address}</p>
+                      </div>
+                    </div>
+
+                    {/* Order Items */}
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <ShoppingCart className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <h5 className="font-medium text-gray-900">Produk</h5>
+                      </div>
+                      <div className="space-y-2 ml-10">
+                        {order.order_items.map((item: OrderItem) => (
+                          <div key={item.id} className="flex justify-between text-sm bg-white rounded-lg p-3">
+                            <span className="font-medium">{item.products.name} x {item.quantity}</span>
+                            <span className="text-green-600 font-semibold">{formatCurrency(item.products.price * item.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Notes */}
+                    {order.notes && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </div>
+                          <h5 className="font-medium text-gray-900">Catatan</h5>
+                        </div>
+                        <p className="text-sm text-gray-600 ml-10 bg-white rounded-lg p-3">{order.notes}</p>
+                      </div>
+                    )}
+
+                    {/* Action Button */}
+                    <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
+                      <Button variant="outline" size="sm" asChild className="hover:bg-blue-500 hover:text-white">
+                        <Link href={`/admin/orders/${order.id}`}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Lihat Detail
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredOrders.length)} dari {filteredOrders.length} pesanan
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Sebelumnya
+                </Button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-2 ${
+                        currentPage === page 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2"
+                >
+                  Selanjutnya
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
