@@ -29,7 +29,10 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
   const supabase = createClient()
 
   const perCartonPrice = getTierPriceForQty(quantity)
+  const baseCartonPrice = getTierPriceForQty(5)
   const totalPrice = perCartonPrice * quantity
+  const isDiscounted = quantity >= 10 && perCartonPrice < baseCartonPrice
+  const discountPct = isDiscounted ? Math.round(((baseCartonPrice - perCartonPrice) / baseCartonPrice) * 100) : 0
 
   const handleAddToCart = async () => {
     setLoading(true)
@@ -233,9 +236,17 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
 
         {/* Price Summary */}
         <div className="space-y-2">
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-sm items-center">
             <span>Harga per karton:</span>
-            <span>{formatCurrency(perCartonPrice)}</span>
+            {isDiscounted ? (
+              <div className="flex items-center gap-2">
+                <span className="line-through text-gray-500">{formatCurrency(baseCartonPrice)}</span>
+                <span className="font-semibold text-primary">{formatCurrency(perCartonPrice)}</span>
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Diskon {discountPct}%</span>
+              </div>
+            ) : (
+              <span>{formatCurrency(perCartonPrice)}</span>
+            )}
           </div>
           <div className="flex justify-between text-sm">
             <span>Jumlah:</span>

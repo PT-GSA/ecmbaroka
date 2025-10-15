@@ -254,9 +254,19 @@ export default function CartPage() {
                   
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {formatCurrency(item.price)} per karton
-                    </p>
+                    {item.quantity >= 10 ? (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="line-through text-gray-500">{formatCurrency(getTierPriceForQty(5))}</span>
+                        <span className="font-medium text-primary">{formatCurrency(item.price)}</span>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                          Diskon {Math.round(((getTierPriceForQty(5) - item.price) / getTierPriceForQty(5)) * 100)}%
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600">
+                        {formatCurrency(item.price)} per karton
+                      </p>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -264,7 +274,7 @@ export default function CartPage() {
                       variant="outline"
                       size="icon"
                       onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                      disabled={item.quantity <= 10}
+                      disabled={item.quantity <= 5}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
