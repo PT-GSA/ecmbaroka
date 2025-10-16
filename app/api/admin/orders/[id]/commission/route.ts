@@ -45,8 +45,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   type OrderLite = Pick<Database['public']['Tables']['orders']['Row'], 'id' | 'status' | 'total_amount' | 'affiliate_id' | 'commission_calculated_at'>
   const order = orderRow as OrderLite
 
-  // Only attribute commission when order is paid or verified
-  if (!['paid', 'verified'].includes(order.status)) {
+  // Only attribute commission when order is paid, verified, or completed
+  if (!['paid', 'verified', 'completed'].includes(order.status)) {
     return NextResponse.json({ ok: true, skipped: true, reason: 'status_not_eligible' })
   }
 

@@ -55,8 +55,8 @@ export default function OrderStatusUpdate({ orderId, currentStatus }: OrderStatu
         // silent fail; notification is non-blocking for admin flow
       }
 
-      // Attribute commission when moving to paid/verified (silent)
-      if (['paid', 'verified'].includes(newStatus)) {
+      // Attribute commission when moving to paid/verified/completed (silent)
+      if (['paid', 'verified', 'completed'].includes(newStatus)) {
         try {
           await fetch(`/api/admin/orders/${orderId}/commission`, {
             method: 'POST',

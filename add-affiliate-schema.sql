@@ -183,6 +183,12 @@ SELECT
 FROM public.orders o
 GROUP BY o.user_id;
 
+-- Grant view access to application roles (RLS on base tables still applies)
+GRANT SELECT ON public.v_affiliate_orders TO authenticated;
+GRANT SELECT ON public.v_affiliate_orders TO anon;
+GRANT SELECT ON public.v_affiliate_customers TO authenticated;
+GRANT SELECT ON public.v_affiliate_customers TO anon;
+
 -- ========================================
 -- Row Level Security (RLS)
 -- ========================================

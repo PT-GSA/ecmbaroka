@@ -1,0 +1,3 @@
+- Rumus: Komisi = (Komisi per karton) × (Total karton) .
+- Dengan angka default Rp 10.800/karton : 6.480.000 ÷ 10.800 = 600 karton .
+- Artinya, tiga order itu secara total memuat 600 karton.

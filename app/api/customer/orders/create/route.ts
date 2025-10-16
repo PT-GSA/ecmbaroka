@@ -167,22 +167,41 @@ export async function POST(req: NextRequest) {
         orderErr = retry.error ?? null
       }
 
-      // If schema cache doesn't recognize affiliate columns, retry without them
+      // If schema cache doesn't recognize affiliate columns, try progressively
       const errMsg = (orderErr as { message?: string }).message || ''
       const errCode = (orderErr as { code?: string }).code || ''
-      if (orderErr && errCode === 'PGRST204' && /affiliate_link_id|affiliate_id/i.test(errMsg)) {
-        const insertOrderNoAff: OrderInsert = {
-          id: insertOrder.id!,
-          user_id: insertOrder.user_id!,
-          total_amount: insertOrder.total_amount!,
-          status: insertOrder.status ?? 'pending',
-          shipping_address: insertOrder.shipping_address!,
-          phone: insertOrder.phone!,
-          notes: insertOrder.notes ?? null,
-          order_code: insertOrder.order_code ?? null,
+      if (orderErr && errCode === 'PGRST204') {
+        // First: if complaint is about affiliate_link_id, retry with only affiliate_id (if valid)
+        if (/affiliate_link_id/i.test(errMsg) && validAffiliateId) {
+          const insertOrderOnlyAff: OrderInsert = {
+            id: insertOrder.id!,
+            user_id: insertOrder.user_id!,
+            total_amount: insertOrder.total_amount!,
+            status: insertOrder.status ?? 'pending',
+            shipping_address: insertOrder.shipping_address!,
+            phone: insertOrder.phone!,
+            notes: insertOrder.notes ?? null,
+            order_code: insertOrder.order_code ?? null,
+            affiliate_id: validAffiliateId,
+          }
+          const retryOnlyAff = await service.from('orders').insert(insertOrderOnlyAff)
+          orderErr = retryOnlyAff.error ?? null
         }
-        const retryNoAff = await service.from('orders').insert(insertOrderNoAff)
-        orderErr = retryNoAff.error ?? null
+        // Second: if still failing or message mentions affiliate_id, retry with no affiliate fields
+        if (orderErr && /affiliate_id/i.test(((orderErr as { message?: string }).message || ''))) {
+          const insertOrderNoAff: OrderInsert = {
+            id: insertOrder.id!,
+            user_id: insertOrder.user_id!,
+            total_amount: insertOrder.total_amount!,
+            status: insertOrder.status ?? 'pending',
+            shipping_address: insertOrder.shipping_address!,
+            phone: insertOrder.phone!,
+            notes: insertOrder.notes ?? null,
+            order_code: insertOrder.order_code ?? null,
+          }
+          const retryNoAff = await service.from('orders').insert(insertOrderNoAff)
+          orderErr = retryNoAff.error ?? null
+        }
       }
       if (orderErr) {
         const errPayload = {

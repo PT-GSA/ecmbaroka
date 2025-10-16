@@ -127,8 +127,47 @@ export default async function AffiliateDashboardPage() {
 
   const commissionRows = (commissionData ?? []) as unknown as (OrderCommissionRow & { affiliate_link_id: string | null })[]
   const commissionByOrderId = new Map(commissionRows.map((r) => [r.id, r]))
-  const totalCommission = commissionRows.reduce((sum, r) => sum + Number(r.commission_amount || 0), 0)
-  const pendingCommissionCount = commissionRows.filter((r) => !r.commission_calculated_at && ['paid', 'verified', 'processing', 'shipped', 'completed'].includes(r.status)).length
+  // Fallback kalkulasi komisi di sisi UI jika kolom komisi tidak bisa dibaca karena RLS
+  const eligibleOrders = orders.filter((o) => ['paid', 'verified', 'completed'].includes(o.status))
+  const missingOrders = eligibleOrders.filter((o) => {
+    const r = commissionByOrderId.get(o.order_id)
+    return !r || !r.commission_calculated_at
+  })
+
+  let commissionFallbackByOrderId = new Map<string, number>()
+  if (missingOrders.length > 0) {
+    const missingIds = missingOrders.map((o) => o.order_id)
+    const { data: itemRows } = await supabase
+      .from('order_items')
+      .select('order_id, quantity')
+      .in('order_id', missingIds)
+    const cartonsByOrderId = new Map<string, number>()
+    ;(itemRows ?? []).forEach((it: { order_id: string; quantity: number }) => {
+      const prev = cartonsByOrderId.get(it.order_id) ?? 0
+      cartonsByOrderId.set(it.order_id, prev + Number(it.quantity || 0))
+    })
+    const perCarton = (() => {
+      const r = Number(aff.commission_rate ?? 0)
+      if (!Number.isFinite(r) || r <= 0) return 10800
+      return r
+    })()
+    commissionFallbackByOrderId = new Map<string, number>(
+      missingOrders.map((o) => {
+        const cartons = cartonsByOrderId.get(o.order_id) ?? 0
+        const amount = Math.round(perCarton * cartons * 100) / 100
+        return [o.order_id, amount]
+      })
+    )
+  }
+
+  const totalCommissionDirect = commissionRows.reduce((sum, r) => sum + Number(r.commission_amount || 0), 0)
+  const totalCommissionFallback = Array.from(commissionFallbackByOrderId.values()).reduce((s, v) => s + Number(v || 0), 0)
+  const totalCommission = totalCommissionDirect + totalCommissionFallback
+  // Pending commission = orders yang belum punya commission_calculated_at
+  const pendingCommissionCount = orders.filter((o) => {
+    const r = commissionByOrderId.get(o.order_id)
+    return !r || !r.commission_calculated_at
+  }).length
   const lastCommissionCalc = commissionRows
     .map((r) => r.commission_calculated_at)
     .filter((d): d is string => !!d)
@@ -287,7 +326,7 @@ export default async function AffiliateDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-1xl font-semibold tracking-tight tabular-nums">{formatNumber(pendingCommissionCount)}</div>
-            <p className="text-sm text-gray-600 mt-1">Pesanan dibayar/terverifikasi belum dihitung komisinya</p>
+            <p className="text-sm text-gray-600 mt-1">Pesanan belum dihitung komisinya</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm hover:shadow-md transition-shadow rounded-xl">
@@ -356,11 +395,30 @@ export default async function AffiliateDashboardPage() {
                 <div className="text-right">
                   <div className="text-sm text-gray-600">Item: {o.item_count}</div>
                   <div className="text-sm text-gray-600">Total: {formatCurrency(Number(o.total_value || 0))}</div>
-                  {commissionByOrderId.has(o.order_id) && (
-                    <div className="text-sm text-gray-600">
-                      Komisi: {formatCurrency(Number(commissionByOrderId.get(o.order_id)!.commission_amount || 0))} ({formatCurrency(Number(commissionByOrderId.get(o.order_id)!.commission_rate || 0))}/karton)
-                    </div>
-                  )}
+                  {(() => {
+                    const direct = commissionByOrderId.get(o.order_id)
+                    const perCartonDisplay = (() => {
+                      const r = Number(aff.commission_rate ?? 0)
+                      if (!Number.isFinite(r) || r <= 0) return 10800
+                      return r
+                    })()
+                    if (direct && direct.commission_calculated_at) {
+                      return (
+                        <div className="text-sm text-gray-600">
+                          Komisi: {formatCurrency(Number(direct.commission_amount || 0))} ({formatCurrency(Number(direct.commission_rate || 0))}/karton)
+                        </div>
+                      )
+                    }
+                    const fallback = commissionFallbackByOrderId.get(o.order_id)
+                    if (fallback && ['paid', 'verified'].includes(o.status)) {
+                      return (
+                        <div className="text-sm text-gray-600">
+                          Komisi (perkiraan): {formatCurrency(Number(fallback || 0))} ({formatCurrency(Number(perCartonDisplay))}/karton)
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
                   <div className="text-xs text-gray-500">{formatDate(o.order_date)}</div>
                 </div>
               </div>
