@@ -199,6 +199,44 @@ export default async function ProductPage({ params }: ProductPageProps) {
   return (
     <div>
       <CustomerNavbar />
+      {/* JSON-LD Product structured data */}
+      {(() => {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+        const images = [
+          ...(galleryUrls ?? []),
+        ]
+        const offers = {
+          '@type': 'Offer',
+          priceCurrency: 'IDR',
+          price: product.price?.toString(),
+          availability: product.stock > 0 ? 'http://schema.org/InStock' : 'http://schema.org/OutOfStock',
+          url: `${appUrl}/products/${product.id}`,
+        }
+        const baseProduct = {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: product.name,
+          description: product.description ?? undefined,
+          image: images.length > 0 ? images : product.image_url ? [product.image_url] : undefined,
+          sku: product.sku ?? undefined,
+          brand: { '@type': 'Brand', name: 'Susu Baroka' },
+          offers,
+          url: `${appUrl}/products/${product.id}`,
+        } as Record<string, unknown>
+        if (product.total_reviews > 0) {
+          baseProduct.aggregateRating = {
+            '@type': 'AggregateRating',
+            ratingValue: product.average_rating,
+            reviewCount: product.total_reviews,
+          }
+        }
+        return (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(baseProduct) }}
+          />
+        )
+      })()}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
       <div className="mb-4">

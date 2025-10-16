@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import ProductCard from '@/components/customer/product-card'
 import CustomerNavbar from '@/components/customer/navbar'
@@ -64,6 +65,27 @@ export default async function ProductsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <CustomerNavbar />
+      {/* JSON-LD ItemList for product listing */}
+      {(() => {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+        const items = (products ?? []).map((p, idx) => ({
+          '@type': 'ListItem',
+          position: idx + 1,
+          url: `${appUrl}/products/${p.id}`,
+          name: p.name,
+        }))
+        const jsonLd = {
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          itemListElement: items,
+        }
+        return (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        )
+      })()}
       
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -154,4 +176,23 @@ export default async function ProductsPage() {
       </div>
     )
   }
+}
+
+export const metadata: Metadata = {
+  title: 'Produk Susu Steril Impor | Susu Baroka',
+  description: 'Jelajahi dan beli Susu Steril Impor berkualitas tinggi dari Susu Baroka.',
+  alternates: { canonical: '/products' },
+  openGraph: {
+    title: 'Produk Susu Steril Impor | Susu Baroka',
+    description: 'Jelajahi dan beli Susu Steril Impor berkualitas tinggi dari Susu Baroka.',
+    url: '/products',
+    type: 'website',
+    images: [{ url: '/original.jpeg', width: 1200, height: 630, alt: 'Produk Susu Steril Impor' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Produk Susu Steril Impor | Susu Baroka',
+    description: 'Jelajahi dan beli Susu Steril Impor berkualitas tinggi dari Susu Baroka.',
+    images: ['/original.jpeg'],
+  },
 }
