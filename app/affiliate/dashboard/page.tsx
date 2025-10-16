@@ -112,20 +112,23 @@ export default async function AffiliateDashboardPage() {
   // Fetch commission details from orders table (direct, via RLS policy)
   type OrderCommissionRow = {
     id: string
+    user_id: string
+    phone: string | null
     commission_rate: number
     commission_amount: number
     commission_calculated_at: string | null
     total_amount: number
     status: 'pending' | 'paid' | 'verified' | 'processing' | 'shipped' | 'completed' | 'cancelled'
     created_at: string
+    affiliate_link_id: string | null
   }
 
   const { data: commissionData } = await supabase
     .from('orders')
-    .select('id, commission_rate, commission_amount, commission_calculated_at, total_amount, status, created_at, affiliate_link_id')
+    .select('id, user_id, phone, commission_rate, commission_amount, commission_calculated_at, total_amount, status, created_at, affiliate_link_id')
     .eq('affiliate_id', aff.id)
 
-  const commissionRows = (commissionData ?? []) as unknown as (OrderCommissionRow & { affiliate_link_id: string | null })[]
+  const commissionRows = (commissionData ?? []) as unknown as OrderCommissionRow[]
   const commissionByOrderId = new Map(commissionRows.map((r) => [r.id, r]))
   // Fallback kalkulasi komisi di sisi UI jika kolom komisi tidak bisa dibaca karena RLS
   const eligibleOrders = orders.filter((o) => ['paid', 'verified', 'completed'].includes(o.status))
@@ -174,17 +177,8 @@ export default async function AffiliateDashboardPage() {
     .sort()
     .at(-1) || null
 
-  // Fetch customers derived from visible orders
-  const { data: customersData } = await supabase
-    .from('v_affiliate_customers')
-    .select('*')
-    .order('last_order_date', { ascending: false })
-
-  const customers = (customersData ?? []) as unknown as AffiliateCustomer[]
-
   const totalOrders = orders.length
   const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total_value || 0), 0)
-  const totalCustomers = customers.length
 
   // Campaign performance data
   const { data: linksData } = await supabase
@@ -202,6 +196,37 @@ export default async function AffiliateDashboardPage() {
 
   const totalClicks = clicks.length
   const conversionRate = totalClicks > 0 ? (totalOrders / totalClicks) * 100 : 0
+
+  // Derive customers strictly from affiliate's orders, and gate visibility until there are transactions
+
+  // Tampilkan pelanggan hanya jika sudah ada transaksi (paid/verified/completed)
+  const shouldShowCustomers = eligibleOrders.length > 0
+  let customers: AffiliateCustomer[] = []
+  if (shouldShowCustomers) {
+    const byCust = new Map<string, { count: number; sum: number; last: string }>()
+    eligibleOrders.forEach((o) => {
+      const key = o.customer_masked_name
+      const prev = byCust.get(key) ?? { count: 0, sum: 0, last: '1970-01-01T00:00:00Z' }
+      const created = String(o.order_date)
+      const last = prev.last && created > prev.last ? created : prev.last
+      byCust.set(key, {
+        count: prev.count + 1,
+        sum: prev.sum + Number(o.total_value || 0),
+        last,
+      })
+    })
+    customers = Array.from(byCust.entries()).map(([mask, agg]) => ({
+      customer_id: mask,
+      first_name_initial: mask,
+      masked_phone: null,
+      order_count: agg.count,
+      total_value: agg.sum,
+      last_order_date: agg.last,
+    }))
+    customers.sort((a, b) => (a.last_order_date < b.last_order_date ? 1 : a.last_order_date > b.last_order_date ? -1 : 0))
+  }
+
+  const totalCustomers = customers.length
 
   // Formatting helpers for neat numbers in cards
   const formatNumber = (n: number) => new Intl.NumberFormat('id-ID').format(Number(n || 0))
