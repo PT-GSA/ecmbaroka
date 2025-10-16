@@ -8,6 +8,8 @@ import { Megaphone } from 'lucide-react'
 import Image from 'next/image'
 import { Database } from '@/types/database'
 
+export const revalidate = 120
+
 type Product = Database['public']['Tables']['products']['Row']
 
 export default async function ProductsPage() {

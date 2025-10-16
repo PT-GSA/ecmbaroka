@@ -11,6 +11,8 @@ import { createClient } from '@/lib/supabase/server'
 import HeroCarousel from '@/components/customer/hero-carousel'
 import { Database } from '@/types/database'
 
+export const revalidate = 120
+
 export const metadata: Metadata = {
   title: 'Susu Steril Impor | Susu Baroka',
   description:

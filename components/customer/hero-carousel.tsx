@@ -71,7 +71,7 @@ export default function HeroCarousel({
             fill
             sizes="100vw"
             priority={i === 0}
-            unoptimized
+            quality={70}
             className="object-cover"
           />
         </div>

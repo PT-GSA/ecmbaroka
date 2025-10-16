@@ -37,6 +37,7 @@ export default function ProductMediaGallery({
             alt={alt}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 50vw"
+            quality={70}
             className="object-cover"
             priority
           />
@@ -69,6 +70,7 @@ export default function ProductMediaGallery({
                 alt={`${alt} ${idx + 1}`}
                 fill
                 sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, 16vw"
+                quality={70}
                 className="object-cover"
               />
             ) : (
