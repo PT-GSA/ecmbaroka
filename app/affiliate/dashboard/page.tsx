@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import CopyInput from '@/components/ui/copy-input'
+import CreateAffiliateLinkForm from '@/components/affiliate/create-link-form'
 import AffiliateLogoutButton from '@/components/affiliate/logout-button'
 
 type AffiliateRow = {
@@ -375,6 +376,14 @@ export default async function AffiliateDashboardPage() {
 
       {/* Campaign Performance */}
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Kinerja Campaign</h2>
+      <Card className="mb-6 shadow-sm rounded-xl">
+        <CardHeader>
+          <CardTitle>Buat Link Referral</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CreateAffiliateLinkForm appUrl={appUrl} />
+        </CardContent>
+      </Card>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
@@ -423,12 +432,10 @@ export default async function AffiliateDashboardPage() {
             ))}
             {campaignRows.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-2 pr-4 text-gray-600">
-                  Belum ada link/campaign untuk akun Anda. Minta admin membuat link kampanye
-                  di halaman Admin &gt; Kelola Affiliates. Setelah dibuat, Anda bisa membagikan
-                  link tracking (contoh: /api/affiliate/track?slug=SLUG) atau langsung menambahkan
-                  parameter slug ke URL tujuan (contoh: /products?slug=SLUG); sistem akan otomatis
-                  mencatat klik.
+                <td colSpan={6} className="py-3 pr-4 text-gray-600">
+                  Belum ada link/campaign untuk akun Anda.
+                  Gunakan form di atas untuk membuat link referral pertama Anda,
+                  lalu bagikan tracking link tersebut ke audiens.
                 </td>
               </tr>
             )}
