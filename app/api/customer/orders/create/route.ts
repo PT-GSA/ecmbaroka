@@ -70,13 +70,39 @@ export async function POST(req: NextRequest) {
     const ymdFull = `${yearFull}${month}${day}`
 
     const service = createServiceClient()
-    const rpcRes = await service.rpc('next_order_counter', { date_ymd: ymdFull })
-    const nextCounter = Number(rpcRes.data ?? 0)
-    if (rpcRes.error || !nextCounter) {
-      return NextResponse.json({ error: 'Failed to generate order code' }, { status: 500 })
+    // Prefer the updated function signature with p_date_ymd first
+    let rpcRes = await service.rpc('next_order_counter', { p_date_ymd: ymdFull })
+    // If the older signature is still deployed, fallback to date_ymd
+    if (rpcRes.error) {
+      rpcRes = await service.rpc('next_order_counter', { date_ymd: ymdFull })
     }
-
-    const orderCode = `${yearShort}${month}${day}${String(nextCounter).padStart(4, '0')}`
+    let orderCode = ''
+    const nextCounter = Number(rpcRes.data ?? 0)
+    if (!rpcRes.error && nextCounter > 0) {
+      orderCode = `${yearShort}${month}${day}${String(nextCounter).padStart(4, '0')}`
+    } else {
+      console.error('next_order_counter RPC failed or returned invalid:', rpcRes.error)
+      // Fallback: generate unique code with random 4-digit suffix and verify uniqueness
+      const base = `${yearShort}${month}${day}`
+      let attempt = 0
+      let unique = ''
+      while (attempt < 10) {
+        const suffix = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+        unique = `${base}${suffix}`
+        const existsRes = await service
+          .from('orders')
+          .select('id', { count: 'exact' })
+          .eq('order_code', unique)
+          .range(0, 0)
+        const exists = (existsRes.count ?? 0) > 0
+        if (!exists) break
+        attempt += 1
+      }
+      if (attempt >= 10) {
+        return NextResponse.json({ error: 'Failed to generate order code' }, { status: 500 })
+      }
+      orderCode = unique
+    }
     const orderId = crypto.randomUUID()
 
     // Insert order
@@ -95,9 +121,21 @@ export async function POST(req: NextRequest) {
       affiliate_link_id: affiliateLinkId ?? undefined,
     }
 
-    const { error: orderErr } = await service.from('orders').insert(insertOrder)
+    let { error: orderErr } = await service.from('orders').insert(insertOrder)
     if (orderErr) {
-      return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+      const isDupCode = typeof orderErr?.message === 'string' && /idx_orders_order_code|unique/i.test(orderErr.message)
+      if (isDupCode) {
+        // Try once more with a new random code
+        const base = `${yearShort}${month}${day}`
+        const newSuffix = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+        orderCode = `${base}${newSuffix}`
+        insertOrder.order_code = orderCode
+        const retry = await service.from('orders').insert(insertOrder)
+        orderErr = retry.error ?? null
+      }
+      if (orderErr) {
+        return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+      }
     }
 
     // Insert order items

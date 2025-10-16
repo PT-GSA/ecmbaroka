@@ -110,6 +110,20 @@ DROP POLICY IF EXISTS "Admins can view all profiles" ON user_profiles;
 DROP POLICY IF EXISTS "Allow signup process" ON user_profiles;
 DROP POLICY IF EXISTS "Service role can insert profiles" ON user_profiles;
 
+-- Helper function to check admin without causing policy recursion
+-- Using SECURITY DEFINER so the lookup bypasses RLS
+CREATE OR REPLACE FUNCTION public.is_admin(uid UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_profiles up
+    WHERE up.id = uid AND up.role = 'admin'
+  );
+$$;
+
 -- Create new policies without recursion
 CREATE POLICY "Users can view their own profile" ON user_profiles
   FOR SELECT USING (auth.uid() = id);
@@ -132,11 +146,7 @@ CREATE POLICY "Allow signup process" ON user_profiles
 -- Admin policy without recursion
 CREATE POLICY "Admins can view all profiles" ON user_profiles
   FOR ALL USING (
-    auth.role() = 'service_role' OR
-    (auth.uid() IS NOT NULL AND EXISTS (
-      SELECT 1 FROM user_profiles up
-      WHERE up.id = auth.uid() AND up.role = 'admin'
-    ))
+    auth.role() = 'service_role' OR public.is_admin(auth.uid())
   );
 
 -- RLS Policies for products
@@ -459,15 +469,17 @@ CREATE TABLE IF NOT EXISTS order_counters (
   counter INTEGER NOT NULL
 );
 
--- Fungsi atomik untuk mengambil counter berikutnya per hari
-CREATE OR REPLACE FUNCTION public.next_order_counter(date_ymd TEXT)
+-- Gunakan nama parameter berbeda dari kolom untuk menghindari ambiguitas
+-- Pastikan mengganti signature: DROP function lama dulu
+DROP FUNCTION IF EXISTS public.next_order_counter(TEXT);
+CREATE OR REPLACE FUNCTION public.next_order_counter(p_date_ymd TEXT)
 RETURNS INTEGER
 LANGUAGE plpgsql
 AS $$
 DECLARE next_counter INTEGER;
 BEGIN
   INSERT INTO public.order_counters(date_ymd, counter)
-  VALUES (date_ymd, 1)
+  VALUES (p_date_ymd, 1)
   ON CONFLICT (date_ymd) DO UPDATE
     SET counter = public.order_counters.counter + 1
   RETURNING counter INTO next_counter;
