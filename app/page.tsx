@@ -45,9 +45,9 @@ export default async function HomePage() {
             {
               src: '/family-azwa.jpeg',
               alt: 'Susu baroka family azwa',
-            },
+            }
           ]}
-          autoPlayInterval={5000}
+          autoPlayInterval={4000}
         >
           <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8">
             <div className="h-full grid lg:grid-cols-12 gap-8 items-center">
@@ -126,11 +126,10 @@ export default async function HomePage() {
             <h3 className="text-xl font-semibold text-neutral-900">Jelajahi Kategori</h3>
             <p className="text-neutral-600">Temukan susu sesuai kebutuhan Anda</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Susu Steril</Badge>
-            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Pasteurisasi</Badge>
-            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Organik</Badge>
-            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Premium</Badge>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Original</Badge>
+            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Rose</Badge>
+            <Badge variant="outline" className="justify-center py-3 text-neutral-800 border-neutral-300">Ajwa</Badge>
           </div>
         </div>
       </section>
