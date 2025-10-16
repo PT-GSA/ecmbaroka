@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,6 +10,47 @@ import ProductCard from '@/components/customer/product-card'
 import { createClient } from '@/lib/supabase/server'
 import HeroCarousel from '@/components/customer/hero-carousel'
 import { Database } from '@/types/database'
+
+export const metadata: Metadata = {
+  title: 'Susu Steril Impor | Susu Baroka',
+  description:
+    'Susu Steril Impor berkualitas tinggi dari Susu Baroka. Belanja aman, elegan, dan mudah dengan pengiriman terpercaya.',
+  keywords: [
+    'Susu Steril Impor',
+    'Susu Steril',
+    'Susu Impor',
+    'Susu Baroka',
+    'Susu steril berkualitas',
+  ],
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Susu Steril Impor | Susu Baroka',
+    description:
+      'Susu Steril Impor berkualitas tinggi dari Susu Baroka. Belanja aman, elegan, dan mudah dengan pengiriman terpercaya.',
+    url: '/',
+    siteName: 'Susu Baroka',
+    locale: 'id_ID',
+    type: 'website',
+    images: [
+      {
+        url: '/rose.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Susu Steril Impor Rasa Rose',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Susu Steril Impor | Susu Baroka',
+    description:
+      'Susu Steril Impor berkualitas tinggi dari Susu Baroka. Belanja aman, elegan, dan mudah dengan pengiriman terpercaya.',
+    images: ['/rose.jpg'],
+    creator: '@SusuBaroka',
+  },
+}
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -23,6 +65,39 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       <CustomerNavbar />
+
+      {/* JSON-LD Structured Data */}
+      {(() => {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+        const jsonLd = [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Susu Baroka',
+            url: appUrl,
+            description:
+              'Susu Steril Impor berkualitas tinggi dari Susu Baroka. Belanja aman, elegan, dan mudah.',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: `${appUrl}/products?q={search_term_string}`,
+              'query-input': 'required name=search_term_string',
+            },
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Susu Baroka',
+            url: appUrl,
+            logo: `${appUrl}/logo.svg`,
+          },
+        ]
+        return (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        )
+      })()}
 
       {/* Banner global preorder dihapus; ditampilkan per produk saja */}
 
