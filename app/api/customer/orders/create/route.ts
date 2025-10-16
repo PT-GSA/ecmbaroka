@@ -70,6 +70,33 @@ export async function POST(req: NextRequest) {
     const ymdFull = `${yearFull}${month}${day}`
 
     const service = createServiceClient()
+
+    // Validate affiliate cookies to avoid foreign key violations
+    let validAffiliateId: string | null = affiliateId
+    let validAffiliateLinkId: string | null = affiliateLinkId
+    try {
+      if (affiliateId) {
+        const { data: aff } = await service
+          .from('affiliates')
+          .select('id')
+          .eq('id', affiliateId)
+          .maybeSingle()
+        if (!aff) validAffiliateId = null
+      }
+      if (affiliateLinkId) {
+        const { data: link } = await service
+          .from('affiliate_links')
+          .select('id')
+          .eq('id', affiliateLinkId)
+          .maybeSingle()
+        if (!link) validAffiliateLinkId = null
+      }
+    } catch (e) {
+      // If validation fails for any reason, ignore cookies to prevent FK errors
+      console.warn('Affiliate validation skipped due to error:', e)
+      validAffiliateId = null
+      validAffiliateLinkId = null
+    }
     // Prefer the updated function signature with p_date_ymd first
     let rpcRes = await service.rpc('next_order_counter', { p_date_ymd: ymdFull })
     // If the older signature is still deployed, fallback to date_ymd
@@ -117,12 +144,18 @@ export async function POST(req: NextRequest) {
       notes: notes ?? null,
       order_code: orderCode,
       // created_at is default
-      affiliate_id: affiliateId ?? undefined,
-      affiliate_link_id: affiliateLinkId ?? undefined,
+    }
+    // Include affiliate fields only if valid to avoid schema cache errors
+    if (validAffiliateId) {
+      insertOrder.affiliate_id = validAffiliateId
+    }
+    if (validAffiliateLinkId) {
+      insertOrder.affiliate_link_id = validAffiliateLinkId
     }
 
     let { error: orderErr } = await service.from('orders').insert(insertOrder)
     if (orderErr) {
+      console.error('Order insert error:', orderErr)
       const isDupCode = typeof orderErr?.message === 'string' && /idx_orders_order_code|unique/i.test(orderErr.message)
       if (isDupCode) {
         // Try once more with a new random code
@@ -133,8 +166,31 @@ export async function POST(req: NextRequest) {
         const retry = await service.from('orders').insert(insertOrder)
         orderErr = retry.error ?? null
       }
+
+      // If schema cache doesn't recognize affiliate columns, retry without them
+      const errMsg = (orderErr as { message?: string }).message || ''
+      const errCode = (orderErr as { code?: string }).code || ''
+      if (orderErr && errCode === 'PGRST204' && /affiliate_link_id|affiliate_id/i.test(errMsg)) {
+        const insertOrderNoAff: OrderInsert = {
+          id: insertOrder.id!,
+          user_id: insertOrder.user_id!,
+          total_amount: insertOrder.total_amount!,
+          status: insertOrder.status ?? 'pending',
+          shipping_address: insertOrder.shipping_address!,
+          phone: insertOrder.phone!,
+          notes: insertOrder.notes ?? null,
+          order_code: insertOrder.order_code ?? null,
+        }
+        const retryNoAff = await service.from('orders').insert(insertOrderNoAff)
+        orderErr = retryNoAff.error ?? null
+      }
       if (orderErr) {
-        return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+        const errPayload = {
+          error: 'Failed to create order',
+          code: (orderErr as { code?: string }).code ?? undefined,
+          details: (orderErr as { message?: string }).message ?? undefined,
+        }
+        return NextResponse.json(errPayload, { status: 500 })
       }
     }
 
