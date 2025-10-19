@@ -177,22 +177,25 @@ export default function ProductPreorderForm({ product }: ProductPreorderFormProp
               id="quantity"
               type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Math.max(5, Math.min(product.stock, parseInt(e.target.value) || 5)))}
+              onChange={(e) => {
+                const parsed = parseInt(e.target.value || '0', 10)
+                setQuantity(Number.isNaN(parsed) ? 0 : parsed)
+              }}
+              onBlur={() => {
+                if (quantity < 5) setQuantity(5)
+              }}
               min={5}
-              max={product.stock}
               className="w-20 text-center"
             />
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-              disabled={quantity >= product.stock}
+              onClick={() => setQuantity(quantity + 1)}
             >
               <Plus className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-gray-500">
-              dari {product.stock} karton tersedia
-            </span>
+            {/* Stock availability text removed per request */}
+            
           </div>
         </div>
 

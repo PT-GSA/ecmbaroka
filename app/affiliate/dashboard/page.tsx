@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -53,6 +54,7 @@ type AffiliateClickRow = {
 
 export default async function AffiliateDashboardPage() {
   const supabase = await createClient()
+  const service = createServiceClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
@@ -166,11 +168,9 @@ export default async function AffiliateDashboardPage() {
   const totalCommissionDirect = commissionRows.reduce((sum, r) => sum + Number(r.commission_amount || 0), 0)
   const totalCommissionFallback = Array.from(commissionFallbackByOrderId.values()).reduce((s, v) => s + Number(v || 0), 0)
   const totalCommission = totalCommissionDirect + totalCommissionFallback
-  // Pending commission = orders yang belum punya commission_calculated_at
-  const pendingCommissionCount = orders.filter((o) => {
-    const r = commissionByOrderId.get(o.order_id)
-    return !r || !r.commission_calculated_at
-  }).length
+  // Pending komisi ditampilkan hanya untuk pesanan yang belum dikonfirmasi admin
+  // (contoh status: 'pending' atau 'paid'). Pesanan 'verified/processing/shipped/completed' tidak dianggap pending.
+  const pendingCommissionCount = orders.filter((o) => ['pending', 'paid'].includes(String(o.status))).length
   const lastCommissionCalc = commissionRows
     .map((r) => r.commission_calculated_at)
     .filter((d): d is string => !!d)
@@ -186,7 +186,7 @@ export default async function AffiliateDashboardPage() {
     .select('id, campaign, url_slug, active')
     .eq('affiliate_id', aff.id)
 
-  const { data: clicksData } = await supabase
+  const { data: clicksData } = await service
     .from('affiliate_clicks')
     .select('campaign, clicked_at')
     .eq('affiliate_id', aff.id)
@@ -351,7 +351,7 @@ export default async function AffiliateDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-1xl font-semibold tracking-tight tabular-nums">{formatNumber(pendingCommissionCount)}</div>
-            <p className="text-sm text-gray-600 mt-1">Pesanan belum dihitung komisinya</p>
+            <p className="text-sm text-gray-600 mt-1">Pesanan belum dikonfirmasi admin</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm hover:shadow-md transition-shadow rounded-xl">

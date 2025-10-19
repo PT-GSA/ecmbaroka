@@ -56,13 +56,10 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.description}
           </CardDescription>
         )}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center mb-3">
           <span className="text-2xl font-bold text-primary">
             {formatCurrency(getTierPriceForQty(5))}
           </span>
-          <Badge variant="outline">
-            Stok: {product.stock}
-          </Badge>
         </div>
         <Button 
           className="w-full" 
