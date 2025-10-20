@@ -9,6 +9,22 @@ import type { Database } from '@/types/database'
 import { AffiliateCodeField } from '@/components/admin/affiliate-code-field'
 
 export default async function NewAffiliatePage() {
+  // Check if Supabase is properly configured
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Supabase tidak dikonfigurasi dengan benar</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/admin-auth/login')

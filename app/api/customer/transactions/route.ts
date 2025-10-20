@@ -13,7 +13,25 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user payments/transactions
+    // First, get order ids for this user
+    type OrderIdRow = Pick<Database['public']['Tables']['orders']['Row'], 'id'>
+    const { data: userOrders, error: ordersErr } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('user_id', user.id)
+      .returns<OrderIdRow[]>()
+
+    if (ordersErr) {
+      console.error('Error fetching user orders for transactions:', ordersErr)
+      return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 })
+    }
+
+    const orderIds = (userOrders ?? []).map(o => o.id)
+    if (orderIds.length === 0) {
+      return NextResponse.json({ transactions: [] })
+    }
+
+    // Get payments/transactions for those orders
     type PaymentRow = Database['public']['Tables']['payments']['Row']
 
     const { data: payments, error } = await supabase
@@ -30,7 +48,7 @@ export async function GET() {
         admin_notes,
         created_at
       `)
-      .eq('user_id', user.id)
+      .in('order_id', orderIds)
       .returns<PaymentRow[]>()
       .order('created_at', { ascending: false })
 

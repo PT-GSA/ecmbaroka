@@ -101,9 +101,9 @@ export async function signupUser(data: SignupData): Promise<SignupResult> {
 }
 
 export async function loginUser(email: string, password: string) {
-  const supabase = createClient()
-
   try {
+    const supabase = createClient()
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -136,8 +136,7 @@ export async function loginUser(email: string, password: string) {
       error: 'Gagal login'
     }
 
-  } catch (error) {
-    console.error('Login error:', error)
+  } catch  {
     return {
       success: false,
       error: 'Terjadi kesalahan saat login'

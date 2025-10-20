@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Upload } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface PaymentUploadFormProps {
   orderId: string
@@ -24,7 +24,6 @@ export default function PaymentUploadForm({ orderId }: PaymentUploadFormProps) {
   const [success, setSuccess] = useState('')
   const router = useRouter()
   const supabase = createClient()
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -58,50 +57,36 @@ export default function PaymentUploadForm({ orderId }: PaymentUploadFormProps) {
     }
 
     try {
-      // Upload proof image to Supabase Storage
-      const fileExt = proofFile.name.split('.').pop()
-      const fileName = `${orderId}-${Date.now()}.${fileExt}`
-      
-      const { error: uploadError } = await supabase.storage
-        .from('payment-proofs')
-        .upload(fileName, proofFile)
+      // Kirim ke route server untuk upload via service role
+      const formData = new FormData()
+      formData.append('order_id', orderId)
+      formData.append('bank_name', bankName)
+      formData.append('account_name', accountName)
+      formData.append('transfer_date', transferDate)
+      formData.append('amount', amount)
+      formData.append('file', proofFile)
 
-      if (uploadError) {
-        setError('Gagal mengupload bukti transfer')
-        return
+      // Get access token for Authorization fallback
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: Record<string, string> = {}
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('payment-proofs')
-        .getPublicUrl(fileName)
+      const res = await fetch('/api/customer/payments/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        headers,
+      })
 
-      // Create payment record
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          order_id: orderId,
-          proof_image_url: urlData.publicUrl,
-          bank_name: bankName,
-          account_name: accountName,
-          transfer_date: transferDate,
-          amount: parseFloat(amount),
-          status: 'pending',
-        })
-
-      if (paymentError) {
-        setError('Gagal menyimpan data pembayaran')
-        return
-      }
-
-      // Update order status to 'paid'
-      const { error: orderError } = await supabase
-        .from('orders')
-        .update({ status: 'paid' })
-        .eq('id', orderId)
-
-      if (orderError) {
-        setError('Gagal memperbarui status pesanan')
+      if (!res.ok) {
+        let msg = 'Gagal mengupload bukti transfer'
+        try {
+          const data = await res.json()
+          msg = data?.error || data?.detail || msg
+        } catch {}
+        setError(msg)
         return
       }
 

@@ -106,7 +106,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   let customerEmail = ''
   try {
     const { data: userList } = await service.auth.admin.listUsers({ page: 1, perPage: 200 })
-    const found = userList.users.find((u) => u.id === o.user_id)
+    const found = userList.users.find((u: { id: string; email?: string }) => u.id === o.user_id)
     customerEmail = found?.email ?? ''
   } catch {
     customerEmail = ''

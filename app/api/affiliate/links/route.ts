@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
 
     const { data: inserted, error: insertError } = await service
       .from('affiliate_links')
+      // @ts-expect-error - Supabase type inference issue with service role client
       .insert({
         affiliate_id: affiliateId,
         campaign: campaign || null,

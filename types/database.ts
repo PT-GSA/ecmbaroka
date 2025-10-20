@@ -236,7 +236,7 @@ export interface Database {
           user_id: string
           title: string
           message: string
-          type: 'order' | 'payment' | 'review' | 'system'
+          type?: 'order' | 'payment' | 'review' | 'system'
           link?: string | null
           is_read?: boolean
           created_at?: string
@@ -376,14 +376,14 @@ export interface Database {
           id?: string
           name: string
           description?: string | null
-          rule_type: 'percentage' | 'fixed'
-          value: number
+          rule_type?: 'percentage' | 'fixed'
+          value?: number
           active?: boolean
           created_at?: string
         }
         Update: {
           id?: string
-          name?: string
+          name?: string | null
           description?: string | null
           rule_type?: 'percentage' | 'fixed'
           value?: number
@@ -446,7 +446,7 @@ export interface Database {
     }
     Functions: {
       next_order_counter: {
-        Args: { date_ymd: string }
+        Args: { p_date_ymd?: string; date_ymd?: string }
         Returns: number
       }
     }

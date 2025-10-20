@@ -98,9 +98,11 @@ export async function POST(req: NextRequest) {
       validAffiliateLinkId = null
     }
     // Prefer the updated function signature with p_date_ymd first
+    // @ts-expect-error - Supabase type inference issue with service role client
     let rpcRes = await service.rpc('next_order_counter', { p_date_ymd: ymdFull })
     // If the older signature is still deployed, fallback to date_ymd
     if (rpcRes.error) {
+      // @ts-expect-error - Supabase type inference issue with service role client
       rpcRes = await service.rpc('next_order_counter', { date_ymd: ymdFull })
     }
     let orderCode = ''
@@ -153,6 +155,7 @@ export async function POST(req: NextRequest) {
       insertOrder.affiliate_link_id = validAffiliateLinkId
     }
 
+    // @ts-expect-error - Supabase type inference issue with service role client
     let { error: orderErr } = await service.from('orders').insert(insertOrder)
     if (orderErr) {
       console.error('Order insert error:', orderErr)
@@ -163,6 +166,7 @@ export async function POST(req: NextRequest) {
         const newSuffix = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
         orderCode = `${base}${newSuffix}`
         insertOrder.order_code = orderCode
+        // @ts-expect-error - Supabase type inference issue with service role client
         const retry = await service.from('orders').insert(insertOrder)
         orderErr = retry.error ?? null
       }
@@ -184,6 +188,7 @@ export async function POST(req: NextRequest) {
             order_code: insertOrder.order_code ?? null,
             affiliate_id: validAffiliateId,
           }
+          // @ts-expect-error - Supabase type inference issue with service role client
           const retryOnlyAff = await service.from('orders').insert(insertOrderOnlyAff)
           orderErr = retryOnlyAff.error ?? null
         }
@@ -199,6 +204,7 @@ export async function POST(req: NextRequest) {
             notes: insertOrder.notes ?? null,
             order_code: insertOrder.order_code ?? null,
           }
+          // @ts-expect-error - Supabase type inference issue with service role client
           const retryNoAff = await service.from('orders').insert(insertOrderNoAff)
           orderErr = retryNoAff.error ?? null
         }
@@ -221,6 +227,7 @@ export async function POST(req: NextRequest) {
       quantity: it.quantity,
       price_at_purchase: it.price_at_purchase,
     }))
+    // @ts-expect-error - Supabase type inference issue with service role client
     const { error: itemsErr } = await service.from('order_items').insert(orderItems)
     if (itemsErr) {
       return NextResponse.json({ error: 'Failed to add order items' }, { status: 500 })

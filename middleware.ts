@@ -89,6 +89,7 @@ export async function middleware(request: NextRequest) {
           .select('role')
           .eq('id', user.id)
           .maybeSingle()
+        // @ts-expect-error - Supabase type inference issue with service role client
         role = svcProfile?.role ?? null
       } catch {}
     }

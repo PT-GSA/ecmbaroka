@@ -62,8 +62,9 @@ export async function POST(req: NextRequest) {
     }
 
     const { error: upsertError } = await service
-      .from('user_profiles' as keyof Database['public']['Tables'])
-      .upsert(profileInsert as Database['public']['Tables']['user_profiles']['Insert'])
+      .from('user_profiles')
+      // @ts-expect-error - Supabase type inference issue with service role client
+      .upsert(profileInsert)
 
     if (upsertError) {
       // rollback: delete created auth user

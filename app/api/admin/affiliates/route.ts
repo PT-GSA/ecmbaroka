@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   let userId: string | null = null
   try {
     const { data: userList } = await service.auth.admin.listUsers({ page: 1, perPage: 200 })
-    const found = userList.users.find(u => (u.email || '').toLowerCase() === email.toLowerCase())
+    const found = userList.users.find((u: { id: string; email?: string }) => (u.email || '').toLowerCase() === email.toLowerCase())
     userId = found?.id ?? null
   } catch {
     return NextResponse.redirect(new URL('/admin/affiliates/new?error=user_lookup_failed', req.url))

@@ -76,7 +76,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     .from('order_items')
     .select('quantity')
     .eq('order_id', order.id)
-  const totalCartons = (items ?? []).reduce((sum, it: { quantity: number }) => sum + Number(it.quantity || 0), 0)
+  const totalCartons = (items ?? []).reduce((sum: number, it: { quantity: number }) => sum + Number(it.quantity || 0), 0)
 
   // Compute commission amount (rounded to 2 decimals)
   const rawAmount = commissionPerCarton * totalCartons
