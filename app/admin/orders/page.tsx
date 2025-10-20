@@ -6,6 +6,7 @@ import { Database } from '@/types/database'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { 
   ShoppingCart, 
@@ -16,7 +17,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  DollarSign
+  DollarSign,
+  Search
 } from 'lucide-react'
 
 interface OrderItem {
@@ -53,6 +55,10 @@ export default function AdminOrdersPage() {
   const [itemsPerPage] = useState(5)
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'verified' | 'processing' | 'shipped' | 'completed' | 'cancelled'>('all')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const supabase = createClient()
 
   const fetchOrders = useCallback(async () => {
@@ -121,6 +127,40 @@ export default function AdminOrdersPage() {
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex)
+
+  // Apply filters
+  useEffect(() => {
+    let filtered = orders
+
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase()
+      filtered = filtered.filter((o) => {
+        const idMatch = o.id.toLowerCase().includes(q)
+        const nameMatch = (o.user_profiles?.full_name || '').toLowerCase().includes(q)
+        const phoneMatch = (o.phone || '').toLowerCase().includes(q)
+        const addressMatch = (o.shipping_address || '').toLowerCase().includes(q)
+        return idMatch || nameMatch || phoneMatch || addressMatch
+      })
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((o) => o.status === statusFilter)
+    }
+
+    if (startDate) {
+      const start = new Date(startDate)
+      filtered = filtered.filter((o) => new Date(o.created_at) >= start)
+    }
+
+    if (endDate) {
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+      filtered = filtered.filter((o) => new Date(o.created_at) <= end)
+    }
+
+    setFilteredOrders(filtered)
+    setCurrentPage(1)
+  }, [orders, searchTerm, statusFilter, startDate, endDate])
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -285,6 +325,61 @@ export default function AdminOrdersPage() {
           </div>
           
           <div className="p-6">
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+              <div className="md:flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    placeholder="Cari berdasarkan ID, nama customer, nomor telepon, atau alamat..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-12 bg-white/50 border-gray-200 focus:bg-white transition-all duration-200"
+                  />
+                </div>
+              </div>
+              <div className="md:w-56">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white h-12"
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="pending">Menunggu Pembayaran</option>
+                  <option value="paid">Menunggu Verifikasi</option>
+                  <option value="verified">Terverifikasi</option>
+                  <option value="processing">Sedang Diproses</option>
+                  <option value="shipped">Sedang Dikirim</option>
+                  <option value="completed">Selesai</option>
+                  <option value="cancelled">Dibatalkan</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="h-12 bg-white/50 border-gray-200 focus:bg-white"
+                  />
+                  <span className="text-gray-600">s/d</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="h-12 bg-white/50 border-gray-200 focus:bg-white"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setSearchTerm(''); setStatusFilter('all'); setStartDate(''); setEndDate(''); }}
+                  className="h-12"
+                >
+                  Reset
+                </Button>
+              </div>
+            </div>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
