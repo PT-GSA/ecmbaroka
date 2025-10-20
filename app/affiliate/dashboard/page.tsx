@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, resolveAppUrl } from '@/lib/utils'
 import CopyInput from '@/components/ui/copy-input'
 import CreateAffiliateLinkForm from '@/components/affiliate/create-link-form'
 import AffiliateLogoutButton from '@/components/affiliate/logout-button'
@@ -277,10 +277,7 @@ export default async function AffiliateDashboardPage() {
 
   // Build app origin for full tracking links
   const hdrs = await headers()
-  const proto = hdrs.get('x-forwarded-proto') ?? 'http'
-  const host = hdrs.get('x-forwarded-host') ?? hdrs.get('host') ?? 'localhost:3000'
-  const origin = `${proto}://${host}`
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin
+  const appUrl = resolveAppUrl(hdrs)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

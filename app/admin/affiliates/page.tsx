@@ -5,7 +5,7 @@ import { headers, cookies } from 'next/headers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, resolveAppUrl } from '@/lib/utils'
 import type { Database } from '@/types/database'
 import CopyInput from '@/components/ui/copy-input'
 import { Badge } from '@/components/ui/badge'
@@ -35,13 +35,10 @@ export default async function AdminAffiliatesPage({
 
   // Ambil via admin API agar pasti bypass RLS (gunakan absolute URL)
   const hdrs = await headers()
-  const proto = hdrs.get('x-forwarded-proto') ?? 'http'
-  const host = hdrs.get('x-forwarded-host') ?? hdrs.get('host') ?? 'localhost:3000'
-  const origin = `${proto}://${host}`
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin
+  const appUrl = resolveAppUrl(hdrs)
   const cookieStore = await cookies()
   const cookieHeader = cookieStore.getAll().map(({ name, value }) => `${name}=${value}`).join('; ')
-  const res = await fetch(new URL('/api/admin/affiliates', origin), {
+  const res = await fetch(new URL('/api/admin/affiliates', appUrl), {
     cache: 'no-store',
     redirect: 'manual',
     headers: cookieHeader ? { cookie: cookieHeader } : undefined,

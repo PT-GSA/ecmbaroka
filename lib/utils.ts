@@ -35,3 +35,21 @@ export function getTierPriceForQty(qty: number): number {
   // Default dan minimum 5 karton
   return 196_800
 }
+
+export function resolveAppUrl(hdrs?: { get: (name: string) => string | null } | null): string {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+    return envUrl.replace(/\/$/, '')
+  }
+  const vercelUrl = process.env.VERCEL_URL
+  if (vercelUrl && typeof vercelUrl === 'string' && vercelUrl.trim()) {
+    return `https://${vercelUrl.replace(/\/$/, '')}`
+  }
+  if (hdrs) {
+    const proto = hdrs.get('x-forwarded-proto') ?? 'https'
+    const host = hdrs.get('x-forwarded-host') ?? hdrs.get('host')
+    if (host) return `${proto}://${host}`
+  }
+  // Fallback dev
+  return 'http://localhost:3000'
+}
