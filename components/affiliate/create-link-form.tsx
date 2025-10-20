@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import CopyInput from '@/components/ui/copy-input'
 
 function slugify(input: string): string {
   return (input || '')
@@ -65,30 +64,79 @@ export default function CreateAffiliateLinkForm({ appUrl }: { appUrl: string }) 
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="campaign">Nama Campaign</Label>
-          <Input id="campaign" value={campaign} onChange={(e) => setCampaign(e.target.value)} placeholder="Contoh: promo-akhir-tahun" />
-        </div>
-        <div>
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <Label htmlFor="slug">Slug Link</Label>
-              <Input id="slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="Contoh: promo-akhir-tahun" />
-            </div>
-            <Button type="button" variant="outline" onClick={onSuggest} title="Buat slug dari campaign">Generate</Button>
-          </div>
+    <form onSubmit={onSubmit} className="space-y-6">
+      {/* Campaign Name */}
+      <div className="space-y-2">
+        <Label htmlFor="campaign">Nama Campaign</Label>
+        <Input 
+          id="campaign" 
+          value={campaign} 
+          onChange={(e) => setCampaign(e.target.value)} 
+          placeholder="Contoh: promo-akhir-tahun"
+          className="w-full"
+        />
+      </div>
+
+      {/* Slug Link with Generate Button */}
+      <div className="space-y-2">
+        <Label htmlFor="slug">Slug Link</Label>
+        <div className="flex gap-2">
+          <Input 
+            id="slug" 
+            value={slug} 
+            onChange={(e) => setSlug(e.target.value)} 
+            placeholder="Contoh: promo-akhir-tahun"
+            className="flex-1"
+          />
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onSuggest} 
+            title="Buat slug dari campaign"
+            className="px-4"
+          >
+            Generate
+          </Button>
         </div>
       </div>
 
-      <CopyInput value={trackingUrl} label="Tracking link" className="max-w-[560px]" />
+      {/* Tracking Link */}
+      <div className="space-y-2">
+        <Label>Tracking Link</Label>
+        <div className="flex gap-2">
+          <Input 
+            value={trackingUrl} 
+            readOnly
+            className="flex-1 font-mono text-sm"
+          />
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => navigator.clipboard.writeText(trackingUrl)}
+            className="px-4"
+          >
+            Copy
+          </Button>
+        </div>
+      </div>
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
-      {successMsg && <div className="text-sm text-green-600">{successMsg}</div>}
+      {/* Status Messages */}
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-sm text-red-600">{error}</div>
+        </div>
+      )}
+      {successMsg && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+          <div className="text-sm text-green-600">{successMsg}</div>
+        </div>
+      )}
 
-      <div className="flex gap-2">
-        <Button type="submit" disabled={loading}>{loading ? 'Membuat...' : 'Buat Link'}</Button>
+      {/* Submit Button */}
+      <div className="pt-2">
+        <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+          {loading ? 'Membuat...' : 'Buat Link'}
+        </Button>
       </div>
     </form>
   )

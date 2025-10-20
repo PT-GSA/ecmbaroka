@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createServiceClient } from '@/lib/supabase/service'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import type { Database } from '@/types/database'
 
 export async function middleware(request: NextRequest) {
@@ -33,14 +34,13 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Affiliate tracking: catch ?slug / ?link and redirect to tracking route
+  // Affiliate tracking: catch ?slug / ?link / ?aff and redirect to tracking route
   try {
     const url = request.nextUrl
-    // Only trigger tracking when a valid slug/link is present.
-    // "aff" (affiliate code) alone should not trigger tracking.
     const slugParam = url.searchParams.get('slug') || url.searchParams.get('link')
+    const codeParam = url.searchParams.get('aff')
     const isTrackingRoute = url.pathname.startsWith('/api/affiliate/track')
-    if (slugParam && !isTrackingRoute) {
+    if ((slugParam || codeParam) && !isTrackingRoute) {
       // Build destination without the affiliate params
       const cleanUrl = new URL(url.origin + url.pathname)
       const paramsToKeep = new URLSearchParams(url.searchParams)
@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest) {
       if (queryStr) cleanUrl.search = queryStr
 
       const trackUrl = new URL(`/api/affiliate/track`, url.origin)
-      trackUrl.searchParams.set('slug', slugParam)
+      trackUrl.searchParams.set(slugParam ? 'slug' : 'aff', (slugParam ?? codeParam)!)
       trackUrl.searchParams.set('to', cleanUrl.pathname + (cleanUrl.search || ''))
       return NextResponse.redirect(trackUrl)
     }

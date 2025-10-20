@@ -5,78 +5,112 @@ import type { Database } from '@/types/database'
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const slug = url.searchParams.get('slug') || url.searchParams.get('link') || ''
+  const code = url.searchParams.get('aff') || ''
   const to = url.searchParams.get('to') || '/products'
 
   const service = createServiceClient()
 
-  // If no slug provided, redirect to products
-  if (!slug) {
+  // If neither slug nor code provided, redirect to products
+  if (!slug && !code) {
     const res = NextResponse.redirect(new URL('/products', url.origin))
     return res
   }
 
-  // Find affiliate link by slug (schema uses url_slug, active)
-  const { data: rawLink, error: linkError } = await service
-    .from('affiliate_links')
-    .select('id, affiliate_id, campaign, url_slug, active')
-    .eq('url_slug', slug)
-    .maybeSingle()
-  const link = rawLink as Database['public']['Tables']['affiliate_links']['Row'] | null
+  // Resolve affiliate either by link slug or affiliate code
+  let affiliateId: string | null = null
+  let affiliateLinkId: string | null = null
+  let campaign: string | null = null
 
-  // Fallback redirect if not found or inactive
-  if (linkError || !link || !link.active) {
-    const res = NextResponse.redirect(new URL('/products', url.origin))
-    return res
+  if (slug) {
+    // Find affiliate link by slug (schema uses url_slug, active)
+    const { data: rawLink, error: linkError } = await service
+      .from('affiliate_links')
+      .select('id, affiliate_id, campaign, url_slug, active')
+      .eq('url_slug', slug)
+      .maybeSingle()
+    const link = rawLink as Database['public']['Tables']['affiliate_links']['Row'] | null
+    if (linkError || !link || !link.active) {
+      const res = NextResponse.redirect(new URL('/products', url.origin))
+      return res
+    }
+    affiliateId = link.affiliate_id
+    affiliateLinkId = link.id
+    campaign = link.campaign ?? null
+  } else if (code) {
+    // Find affiliate by code (must be active)
+    const { data: aff, error: affErr } = await service
+      .from('affiliates')
+      .select('id, status')
+      .eq('code', code)
+      .maybeSingle()
+    const affiliate = aff as Database['public']['Tables']['affiliates']['Row'] | null
+    if (affErr || !affiliate || affiliate.status !== 'active') {
+      const res = NextResponse.redirect(new URL('/products', url.origin))
+      return res
+    }
+    affiliateId = affiliate.id
+    affiliateLinkId = null
+    campaign = null
   }
 
-  // Record click with minimal info (dedup by affiliate_id + ua_hash + ip_hash)
+  // Record click with time-based deduplication (per day)
   try {
     const ua = req.headers.get('user-agent') || ''
     const referer = req.headers.get('referer') || ''
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || ''
-    // Hash IP to avoid storing raw IP
     const ipHash = await hashIp(ip)
     const uaHash = await hashIp(ua)
-    const upsertBuilder = service.from('affiliate_clicks') as unknown as {
-      upsert: (
-        values: Database['public']['Tables']['affiliate_clicks']['Insert'],
-        options?: { onConflict?: string; ignoreDuplicates?: boolean }
-      ) => Promise<{ error: unknown }>
-    }
-    await upsertBuilder.upsert(
-      {
-        affiliate_id: link.affiliate_id,
-        campaign: link.campaign ?? null,
+    
+    // Check if click already exists today for this combination
+    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+    const { data: existingClick } = await service
+      .from('affiliate_clicks')
+      .select('id')
+      .eq('affiliate_id', affiliateId!)
+      .eq('ua_hash', uaHash)
+      .eq('ip_hash', ipHash)
+      .gte('clicked_at', `${today}T00:00:00.000Z`)
+      .lt('clicked_at', `${today}T23:59:59.999Z`)
+      .maybeSingle()
+
+    if (!existingClick) {
+      // Insert new click if no click exists today
+      const insertBuilder = service.from('affiliate_clicks') as unknown as {
+        insert: (values: Database['public']['Tables']['affiliate_clicks']['Insert']) => Promise<{ error: unknown }>
+      }
+      await insertBuilder.insert({
+        affiliate_id: affiliateId!,
+        campaign,
         referrer: referer,
         ua_hash: uaHash,
         ip_hash: ipHash,
-      },
-      { onConflict: 'affiliate_id,ua_hash,ip_hash', ignoreDuplicates: true }
-    )
+      })
+    }
   } catch (e) {
-    // Non-blocking; proceed with redirect even if logging fails
     console.error('Affiliate click log error:', e)
   }
 
-  // Set 30-day cookie for attribution
-  // Redirect to destination (defaults to products)
+  // Set 30-day cookie for attribution and redirect
   const res = NextResponse.redirect(new URL(to, url.origin))
   const maxAge = 60 * 60 * 24 * 30 // 30 days
-  res.cookies.set('afid', String(link.affiliate_id), {
-    maxAge,
-    path: '/',
-    sameSite: 'lax',
-    httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-  })
-  // Store affiliate_link_id cookie for precise link attribution
-  res.cookies.set('aflid', String(link.id), {
-    maxAge,
-    path: '/',
-    sameSite: 'lax',
-    httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-  })
+  if (affiliateId) {
+    res.cookies.set('afid', String(affiliateId), {
+      maxAge,
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+    })
+  }
+  if (affiliateLinkId) {
+    res.cookies.set('aflid', String(affiliateLinkId), {
+      maxAge,
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+    })
+  }
 
   return res
 }

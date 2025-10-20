@@ -3,7 +3,6 @@
 import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
 import { LogOut } from 'lucide-react'
 
 export default function AffiliateLogoutButton() {
@@ -17,14 +16,12 @@ export default function AffiliateLogoutButton() {
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
+    <button
       onClick={handleLogout}
-      className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white"
+      className="flex items-center space-x-3 w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
     >
-      <LogOut className="h-4 w-4 mr-2" />
-      Logout
-    </Button>
+      <LogOut className="h-5 w-5" />
+      <span>Logout</span>
+    </button>
   )
 }

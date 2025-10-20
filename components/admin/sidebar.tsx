@@ -23,7 +23,8 @@ import {
   Heart,
   Menu,
   X,
-  Link2
+  Link2,
+  Banknote
 } from 'lucide-react'
 
 const navigation = [
@@ -33,6 +34,7 @@ const navigation = [
   { name: 'Pembayaran', href: '/admin/payments', icon: CreditCard },
   { name: 'Pelanggan', href: '/admin/customers', icon: Users },
   { name: 'Afiliasi', href: '/admin/affiliates', icon: Link2 },
+  { name: 'Withdrawals', href: '/admin/withdrawals', icon: Banknote },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
   { name: 'Pengaturan', href: '/admin/settings', icon: Settings },
 ]
@@ -46,6 +48,7 @@ export default function AdminSidebar() {
   const supabase = useMemo(() => createClient(), [])
   const [ordersPendingCount, setOrdersPendingCount] = useState<number | null>(null)
   const [paymentsPendingCount, setPaymentsPendingCount] = useState<number | null>(null)
+  const [withdrawalsPendingCount, setWithdrawalsPendingCount] = useState<number | null>(null)
 
   const fetchOrdersPendingCount = useCallback(async () => {
     const { count, error } = await supabase
@@ -69,6 +72,17 @@ export default function AdminSidebar() {
     }
   }, [supabase])
 
+  const fetchWithdrawalsPendingCount = useCallback(async () => {
+    const { count, error } = await supabase
+      .from('affiliate_withdrawals')
+      .select('id', { count: 'exact' })
+      .eq('status', 'pending')
+      .range(0, 0)
+    if (!error) {
+      setWithdrawalsPendingCount(count ?? 0)
+    }
+  }, [supabase])
+
   const toggle = () => {
     setCollapsed(!collapsed)
   }
@@ -80,6 +94,7 @@ export default function AdminSidebar() {
       // Fetch initial counts for admin badges
       fetchOrdersPendingCount()
       fetchPaymentsPendingCount()
+      fetchWithdrawalsPendingCount()
     }
 
     getUser()
@@ -90,11 +105,12 @@ export default function AdminSidebar() {
         // Refresh counts on auth change
         fetchOrdersPendingCount()
         fetchPaymentsPendingCount()
+        fetchWithdrawalsPendingCount()
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase, fetchOrdersPendingCount, fetchPaymentsPendingCount])
+  }, [supabase, fetchOrdersPendingCount, fetchPaymentsPendingCount, fetchWithdrawalsPendingCount])
 
   
 
@@ -244,6 +260,8 @@ export default function AdminSidebar() {
                           ? ordersPendingCount
                           : item.href === '/admin/payments'
                           ? paymentsPendingCount
+                          : item.href === '/admin/withdrawals'
+                          ? withdrawalsPendingCount
                           : null
                         if (typeof badgeValue === 'number' && badgeValue > 0) {
                           return (

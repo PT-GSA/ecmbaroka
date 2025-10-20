@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { ArrowLeft, Package, Calendar, MapPin, Phone, CreditCard, Upload } from 'lucide-react'
+import { ArrowLeft, Package, Calendar, MapPin, Phone, CreditCard, Upload, ShoppingCart, CheckCircle, Truck } from 'lucide-react'
 import PaymentUploadForm from '@/components/customer/payment-upload-form'
 
 interface OrderItem {
@@ -163,18 +163,69 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <Button variant="ghost" asChild>
-          <Link href="/customer-orders" className="flex items-center">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Kembali ke Pesanan
-          </Link>
-        </Button>
+      <div className="relative mb-8">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-indigo-600/10 rounded-3xl blur-3xl"></div>
+        <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-6 sm:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                  <Package className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
+                    Detail Pesanan
+                  </h1>
+                  <p className="text-gray-600">Pesanan #{order.id.slice(-8)} • {formatDate(order.created_at)}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {getStatusBadge(order.status)}
+              <Button variant="outline" size="sm" asChild className="border-slate-200">
+                <Link href="/customer-orders" className="flex items-center">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Kembali
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <ShoppingCart className="w-4 h-4 text-gray-500" />
+              </div>
+              Checkout
+            </div>
+            <div className="h-px w-10 sm:w-20 bg-gray-200"></div>
+            <div className={`flex items-center gap-2 text-sm font-medium ${['pending','paid'].includes(order.status) ? 'text-blue-700' : 'text-gray-500'}`}>
+              <div className={`w-8 h-8 rounded-full ${['pending','paid'].includes(order.status) ? 'bg-blue-600' : 'bg-gray-100'} flex items-center justify-center`}>
+                <CreditCard className={`w-4 h-4 ${['pending','paid'].includes(order.status) ? 'text-white' : 'text-gray-500'}`} />
+              </div>
+              Pembayaran
+            </div>
+            <div className="h-px w-10 sm:w-20 bg-gray-200"></div>
+            <div className={`flex items-center gap-2 text-sm font-medium ${['verified','processing'].includes(order.status) ? 'text-blue-700' : 'text-gray-500'}`}>
+              <div className={`w-8 h-8 rounded-full ${['verified','processing'].includes(order.status) ? 'bg-blue-600' : 'bg-gray-100'} flex items-center justify-center`}>
+                <CheckCircle className={`w-4 h-4 ${['verified','processing'].includes(order.status) ? 'text-white' : 'text-gray-500'}`} />
+              </div>
+              Verifikasi
+            </div>
+            <div className="h-px w-10 sm:w-20 bg-gray-200"></div>
+            <div className={`flex items-center gap-2 text-sm font-medium ${['shipped','completed'].includes(order.status) ? 'text-blue-700' : 'text-gray-500'}`}>
+              <div className={`w-8 h-8 rounded-full ${['shipped','completed'].includes(order.status) ? 'bg-blue-600' : 'bg-gray-100'} flex items-center justify-center`}>
+                <Truck className={`w-4 h-4 ${['shipped','completed'].includes(order.status) ? 'text-white' : 'text-gray-500'}`} />
+              </div>
+              Pengiriman
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Order Details */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -272,7 +323,7 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
         </div>
 
         {/* Payment Section */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-6">
           {/* Payment Instructions */}
           {order.status === 'pending' && (
             <Card>
