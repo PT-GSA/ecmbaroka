@@ -46,6 +46,16 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    // Service role client may be unavailable in production if env not set
+    let service: ReturnType<typeof createServiceClient> | null = null
+    let serviceAvailable = false
+    try {
+      service = createServiceClient()
+      serviceAvailable = true
+    } catch (e) {
+      console.warn('Service role unavailable, using user client fallback:', e)
+    }
+
     const body: unknown = await req.json()
     if (!isCreateOrderBody(body)) {
       return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
@@ -80,15 +90,14 @@ export async function POST(req: NextRequest) {
     const affiliateId = req.cookies.get('afid')?.value ?? null
     const affiliateLinkId = req.cookies.get('aflid')?.value ?? null
 
-    // Generate order code using daily counter
+    // Build date parts for order code
     const { yearFull, yearShort, month, day } = getJakartaDateParts()
     const ymdFull = `${yearFull}${month}${day}`
 
-    const service = createServiceClient()
-
     // Rate limit: max 3 orders per user per minute
     const sinceIso = new Date(Date.now() - 60_000).toISOString()
-    const { count: recentOrdersCount, error: recentErr } = await service
+    const rateClient = serviceAvailable ? service! : supabase
+    const { count: recentOrdersCount, error: recentErr } = await rateClient
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
@@ -100,53 +109,65 @@ export async function POST(req: NextRequest) {
     // Validate affiliate cookies to avoid foreign key violations
     let validAffiliateId: string | null = affiliateId
     let validAffiliateLinkId: string | null = affiliateLinkId
-    try {
-      if (affiliateId) {
-        const { data: aff } = await service
-          .from('affiliates')
-          .select('id')
-          .eq('id', affiliateId)
-          .maybeSingle()
-        if (!aff) validAffiliateId = null
+    if (serviceAvailable) {
+      try {
+        if (affiliateId) {
+          const { data: aff } = await service!
+            .from('affiliates')
+            .select('id')
+            .eq('id', affiliateId)
+            .maybeSingle()
+          if (!aff) validAffiliateId = null
+        }
+        if (affiliateLinkId) {
+          const { data: link } = await service!
+            .from('affiliate_links')
+            .select('id')
+            .eq('id', affiliateLinkId)
+            .maybeSingle()
+          if (!link) validAffiliateLinkId = null
+        }
+      } catch (e) {
+        console.warn('Affiliate validation skipped due to error:', e)
+        validAffiliateId = null
+        validAffiliateLinkId = null
       }
-      if (affiliateLinkId) {
-        const { data: link } = await service
-          .from('affiliate_links')
-          .select('id')
-          .eq('id', affiliateLinkId)
-          .maybeSingle()
-        if (!link) validAffiliateLinkId = null
-      }
-    } catch (e) {
-      // If validation fails for any reason, ignore cookies to prevent FK errors
-      console.warn('Affiliate validation skipped due to error:', e)
+    } else {
+      // Without service role, skip validation to avoid RLS issues and FK errors
       validAffiliateId = null
       validAffiliateLinkId = null
     }
-    // Prefer the updated function signature with p_date_ymd first
-    const rpc = service.rpc as unknown as (
-      fn: 'next_order_counter',
-      params: Record<string, unknown>
-    ) => Promise<{ data: number | null; error: unknown }>
-    let rpcRes = await rpc('next_order_counter', { p_date_ymd: ymdFull })
-    // If the older signature is still deployed, fallback to date_ymd
-    if (rpcRes.error) {
-      rpcRes = await rpc('next_order_counter', { date_ymd: ymdFull })
-    }
+
+    // Generate order code using daily counter (prefer RPC if service available)
     let orderCode = ''
-    const nextCounter = Number(rpcRes.data ?? 0)
-    if (!rpcRes.error && nextCounter > 0) {
-      orderCode = `${yearShort}${month}${day}${String(nextCounter).padStart(4, '0')}`
-    } else {
-      console.error('next_order_counter RPC failed or returned invalid:', rpcRes.error)
+    if (serviceAvailable) {
+      try {
+        const rpc = service!.rpc as unknown as (
+          fn: 'next_order_counter',
+          params: Record<string, unknown>
+        ) => Promise<{ data: number | null; error: unknown }>
+        let rpcRes = await rpc('next_order_counter', { p_date_ymd: ymdFull })
+        if (rpcRes.error) {
+          rpcRes = await rpc('next_order_counter', { date_ymd: ymdFull })
+        }
+        const nextCounter = Number(rpcRes.data ?? 0)
+        if (!rpcRes.error && nextCounter > 0) {
+          orderCode = `${yearShort}${month}${day}${String(nextCounter).padStart(4, '0')}`
+        }
+      } catch (e) {
+        console.error('next_order_counter RPC failed:', e)
+      }
+    }
+    if (!orderCode) {
       // Fallback: generate unique code with random 4-digit suffix and verify uniqueness
       const base = `${yearShort}${month}${day}`
       let attempt = 0
       let unique = ''
+      const checkClient = serviceAvailable ? service! : supabase
       while (attempt < 10) {
         const suffix = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
         unique = `${base}${suffix}`
-        const existsRes = await service
+        const existsRes = await checkClient
           .from('orders')
           .select('id', { count: 'exact' })
           .eq('order_code', unique)
@@ -160,11 +181,13 @@ export async function POST(req: NextRequest) {
       }
       orderCode = unique
     }
+
     const orderId = crypto.randomUUID()
 
     // Fetch product prices from DB and compute order items + total safely
     const uniqueProductIds = Array.from(new Set(items.map((it) => it.product_id)))
-    const { data: products, error: productsErr } = await service
+    const readClient = serviceAvailable ? service! : supabase
+    const { data: products, error: productsErr } = await readClient
       .from('products')
       .select('id, price, is_active')
       .in('id', uniqueProductIds)
@@ -211,7 +234,8 @@ export async function POST(req: NextRequest) {
     if (validAffiliateId) insertOrder.affiliate_id = validAffiliateId
     if (validAffiliateLinkId) insertOrder.affiliate_link_id = validAffiliateLinkId
 
-    const insertOrderBuilder = service.from('orders') as unknown as {
+    const writeClient = serviceAvailable ? service! : supabase
+    const insertOrderBuilder = writeClient.from('orders') as unknown as {
       insert: (values: OrderInsert) => Promise<{ error: unknown }>
     }
 
@@ -275,14 +299,16 @@ export async function POST(req: NextRequest) {
     type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
     const orderItems: OrderItemInsert[] = computedOrderItems
 
-    const insertItemsBuilder = service.from('order_items') as unknown as {
+    const insertItemsBuilder = writeClient.from('order_items') as unknown as {
       insert: (values: OrderItemInsert[]) => Promise<{ error: unknown }>
     }
 
     const { error: itemsErr } = await insertItemsBuilder.insert(orderItems)
     if (itemsErr) {
-      // Cleanup: avoid orphaned order if items failed to insert
-      await service.from('orders').delete().eq('id', orderId)
+      // Cleanup: avoid orphaned order if items failed to insert (ignore errors under RLS)
+      try {
+        await writeClient.from('orders').delete().eq('id', orderId)
+      } catch {}
       return NextResponse.json({ error: 'Failed to add order items' }, { status: 500 })
     }
 
