@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { ShoppingCart, Heart, Shield, Award, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
+import { ShoppingCart, Heart, Shield, Award, Eye, EyeOff, ArrowRight } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -88,27 +88,6 @@ export default function LoginPage() {
                   </div>
                   <p className="text-sm font-medium text-gray-700">Terpercaya</p>
                 </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl p-6 border border-blue-100">
-                <div className="flex items-center mb-4">
-                  <Sparkles className="w-5 h-5 text-yellow-500 mr-2" />
-                  <h3 className="font-semibold text-gray-900">Keuntungan Member</h3>
-                </div>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-center">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-3"></div>
-                    Akses ke produk eksklusif
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-3"></div>
-                    Pengiriman gratis untuk order minimal
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-3"></div>
-                    Notifikasi produk baru dan promo
-                  </li>
-                </ul>
               </div>
             </div>
           </div>
