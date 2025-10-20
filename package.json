@@ -2,9 +2,9 @@
   "name": "ecmbaroka",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.1.20",
   "engines": {
-    "node": ">=18",
-    "npm": ">=9"
+    "node": ">=18"
   },
   "scripts": {
     "dev": "next dev --turbopack",
