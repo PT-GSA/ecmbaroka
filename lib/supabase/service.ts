@@ -1,13 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import { getSupabaseConfig } from './config'
+import { getServerSupabaseConfig } from './server-config'
 
 export function createServiceClient() {
-  const config = getSupabaseConfig()
+  const { url, serviceRoleKey, isValid } = getServerSupabaseConfig()
   
-  if (!config.isValid) {
+  if (!isValid) {
     throw new Error('Supabase service configuration is missing. Please check your environment variables.')
   }
 
-  return createClient<Database, 'public'>(config.url, config.serviceRoleKey)
+  return createClient<Database, 'public'>(url!, serviceRoleKey!)
 }

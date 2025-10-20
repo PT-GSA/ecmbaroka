@@ -1,12 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { getSupabaseConfig } from './config'
+import { getPublicSupabaseConfig } from './client-config'
 
 export function createClient() {
-  const config = getSupabaseConfig()
+  const { url, anonKey } = getPublicSupabaseConfig()
 
-  if (!config.url || !config.anonKey) {
-    throw new Error('Supabase client configuration is missing. Please check your environment variables.')
-  }
-
-  return createBrowserClient(config.url, config.anonKey)
+  return createBrowserClient(url, anonKey)
 }

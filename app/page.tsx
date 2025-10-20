@@ -144,7 +144,7 @@ export default async function HomePage() {
                       <ShoppingCart className="mr-2 h-5 w-5" /> Belanja Sekarang
                     </Link>
                   </Button>
-                  <Button variant="outline" size="lg" className="border-white/70 text-white hover:bg-white/10" asChild>
+                  <Button variant="outline" size="lg" className="border-white/70 text-black hover:bg-white/10" asChild>
                     <Link href="/login">Daftar</Link>
                   </Button>
                 </div>

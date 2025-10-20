@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/types/database'
 
 type CreateOrderBody = {
-  items: Array<{ product_id: string; quantity: number; price_at_purchase: number }>
+  items: Array<{ product_id: string; quantity: number; price_at_purchase?: number }>
   shipping_address?: string
   phone?: string
   notes?: string
@@ -25,6 +25,21 @@ function getJakartaDateParts() {
   return { yearFull, yearShort, month, day }
 }
 
+const isCreateOrderBody = (b: unknown): b is CreateOrderBody => {
+  if (!b || typeof b !== 'object') return false
+  const obj = b as Record<string, unknown>
+  const items = obj.items
+  if (!Array.isArray(items) || items.length === 0) return false
+  for (const it of items) {
+    if (!it || typeof it !== 'object') return false
+    const itObj = it as Record<string, unknown>
+    if (typeof itObj.product_id !== 'string') return false
+    if (typeof itObj.quantity !== 'number' || !Number.isInteger(itObj.quantity) || itObj.quantity <= 0) return false
+    // price_at_purchase optional; ignored on server and replaced by DB price
+  }
+  return true
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
@@ -32,25 +47,25 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body: unknown = await req.json()
-    const isCreateOrderBody = (b: unknown): b is CreateOrderBody => {
-      if (!b || typeof b !== 'object') return false
-      const obj = b as Record<string, unknown>
-      const items = obj.items
-      if (!Array.isArray(items) || items.length === 0) return false
-      for (const it of items) {
-        if (!it || typeof it !== 'object') return false
-        const itObj = it as Record<string, unknown>
-        if (typeof itObj.product_id !== 'string') return false
-        if (typeof itObj.quantity !== 'number') return false
-        if (typeof itObj.price_at_purchase !== 'number') return false
-      }
-      return true
-    }
     if (!isCreateOrderBody(body)) {
       return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
     }
 
     const { items, shipping_address, phone, notes } = body as CreateOrderBody
+    const sanitizedShipping = (shipping_address && shipping_address.trim().slice(0, 500)) || '-'
+    const sanitizedPhone = (phone && phone.replace(/[^\d+]/g, '').slice(0, 20)) || '-'
+
+    // Disallow duplicate products in a single order
+    {
+      const seen = new Set<string>()
+      for (const it of items) {
+        if (seen.has(it.product_id)) {
+          return NextResponse.json({ error: 'Duplikasi produk pada items tidak diperbolehkan' }, { status: 400 })
+        }
+        seen.add(it.product_id)
+      }
+    }
+
     // Enforce minimum quantity 5 cartons per item
     for (const it of items) {
       if (it.quantity < 5) {
@@ -58,18 +73,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Compute totals server-side to ensure integrity
+    let totalAmount = 0
+
     // Read affiliate cookies if present
     const affiliateId = req.cookies.get('afid')?.value ?? null
     const affiliateLinkId = req.cookies.get('aflid')?.value ?? null
-
-    // Compute totals server-side to ensure integrity
-    const totalAmount = items.reduce((sum, it) => sum + (Number(it.price_at_purchase) * Number(it.quantity)), 0)
 
     // Generate order code using daily counter
     const { yearFull, yearShort, month, day } = getJakartaDateParts()
     const ymdFull = `${yearFull}${month}${day}`
 
     const service = createServiceClient()
+
+    // Rate limit: max 3 orders per user per minute
+    const sinceIso = new Date(Date.now() - 60_000).toISOString()
+    const { count: recentOrdersCount, error: recentErr } = await service
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gt('created_at', sinceIso)
+    if (!recentErr && (recentOrdersCount ?? 0) >= 3) {
+      return NextResponse.json({ error: 'Terlalu banyak order, coba lagi nanti' }, { status: 429 })
+    }
 
     // Validate affiliate cookies to avoid foreign key violations
     let validAffiliateId: string | null = affiliateId
@@ -136,6 +162,40 @@ export async function POST(req: NextRequest) {
     }
     const orderId = crypto.randomUUID()
 
+    // Fetch product prices from DB and compute order items + total safely
+    const uniqueProductIds = Array.from(new Set(items.map((it) => it.product_id)))
+    const { data: products, error: productsErr } = await service
+      .from('products')
+      .select('id, price, is_active')
+      .in('id', uniqueProductIds)
+    if (productsErr) {
+      console.error('Products fetch error:', productsErr)
+      return NextResponse.json({ error: 'Gagal mengambil data produk' }, { status: 500 })
+    }
+    if (!products || products.length !== uniqueProductIds.length) {
+      return NextResponse.json({ error: 'Produk tidak valid atau tidak aktif' }, { status: 400 })
+    }
+    const productsAny = products as Array<{ id: string; price: number | string; is_active: boolean }>
+    for (const p of productsAny) {
+      if (!p.is_active) {
+        return NextResponse.json({ error: 'Terdapat produk yang tidak aktif' }, { status: 400 })
+      }
+    }
+    const priceMap = new Map(productsAny.map((p) => [p.id, Number(p.price)]))
+    const computedOrderItems = items.map((it) => ({
+      order_id: orderId,
+      product_id: it.product_id,
+      quantity: it.quantity,
+      price_at_purchase: Number(priceMap.get(it.product_id) ?? 0),
+    }))
+    if (computedOrderItems.some((oi) => oi.price_at_purchase <= 0)) {
+      return NextResponse.json({ error: 'Harga produk tidak valid' }, { status: 400 })
+    }
+    totalAmount = computedOrderItems.reduce((sum, oi) => sum + (oi.price_at_purchase * oi.quantity), 0)
+    if (totalAmount <= 0) {
+      return NextResponse.json({ error: 'Total order tidak valid' }, { status: 400 })
+    }
+
     // Insert order
     type OrderInsert = Database['public']['Tables']['orders']['Insert']
     const insertOrder: OrderInsert = {
@@ -143,8 +203,8 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       total_amount: totalAmount,
       status: 'pending',
-      shipping_address: (shipping_address && shipping_address.trim()) || '-',
-      phone: (phone && phone.trim()) || '-',
+      shipping_address: sanitizedShipping,
+      phone: sanitizedPhone,
       notes: notes ?? null,
       order_code: orderCode,
     }
@@ -213,12 +273,7 @@ export async function POST(req: NextRequest) {
 
     // Insert order items
     type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
-    const orderItems: OrderItemInsert[] = items.map((it) => ({
-      order_id: orderId,
-      product_id: it.product_id,
-      quantity: it.quantity,
-      price_at_purchase: it.price_at_purchase,
-    }))
+    const orderItems: OrderItemInsert[] = computedOrderItems
 
     const insertItemsBuilder = service.from('order_items') as unknown as {
       insert: (values: OrderItemInsert[]) => Promise<{ error: unknown }>
@@ -226,6 +281,8 @@ export async function POST(req: NextRequest) {
 
     const { error: itemsErr } = await insertItemsBuilder.insert(orderItems)
     if (itemsErr) {
+      // Cleanup: avoid orphaned order if items failed to insert
+      await service.from('orders').delete().eq('id', orderId)
       return NextResponse.json({ error: 'Failed to add order items' }, { status: 500 })
     }
 
