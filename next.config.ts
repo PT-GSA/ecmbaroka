@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
   // Power by header
   poweredByHeader: false,
   // Generate static pages
-  output: 'standalone',
+  // output: 'standalone', // Disabled for Vercel deployment
 }
 
 export default nextConfig
