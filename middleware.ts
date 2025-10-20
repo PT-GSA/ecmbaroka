@@ -59,8 +59,8 @@ export async function middleware(request: NextRequest) {
 
   // Protected admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    // Skip redirect for admin login page
-    if (request.nextUrl.pathname === '/admin-auth/login') {
+    // Skip redirect for admin login page and API routes
+    if (request.nextUrl.pathname === '/admin-auth/login' || request.nextUrl.pathname.startsWith('/api/admin/')) {
       return supabaseResponse
     }
     

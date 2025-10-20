@@ -40,11 +40,28 @@ export default function AdminDashboard() {
       setLoading(true)
       setErrorMsg('')
       try {
-        const res = await fetch('/api/admin/stats', { cache: 'no-store' })
+        const res = await fetch('/api/admin/stats', { 
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        
         if (!res.ok) {
+          if (res.status === 405) {
+            throw new Error('Method not allowed - kemungkinan masalah dengan middleware atau konfigurasi server')
+          }
+          if (res.status === 401) {
+            throw new Error('Unauthorized - silakan login ulang sebagai admin')
+          }
+          if (res.status === 403) {
+            throw new Error('Forbidden - Anda tidak memiliki akses admin')
+          }
+          
           const body = await res.json().catch(() => ({ error: 'Gagal memuat' }))
           throw new Error(body.error || `Gagal memuat (${res.status})`)
         }
+        
         const data: {
           stats: {
             totalOrders: number

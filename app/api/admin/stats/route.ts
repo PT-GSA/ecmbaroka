@@ -23,65 +23,76 @@ async function ensureAdmin(): Promise<{ status: number; error?: string }> {
 
 export async function GET(_req: NextRequest) {
   void _req
-  const auth = await ensureAdmin()
-  if (auth.status !== 200) return NextResponse.json({ error: auth.error }, { status: auth.status })
+  
+  try {
+    const auth = await ensureAdmin()
+    if (auth.status !== 200) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
 
-  const service = createServiceClient()
+    const service = createServiceClient()
 
-  // Counts
-  const totalOrdersRes = await service.from('orders').select('id', { count: 'exact' }).range(0, 0)
-  const totalOrders = totalOrdersRes.count ?? 0
+    // Counts
+    const totalOrdersRes = await service.from('orders').select('id', { count: 'exact' }).range(0, 0)
+    const totalOrders = totalOrdersRes.count ?? 0
 
-  const pendingOrdersRes = await service.from('orders').select('id', { count: 'exact' }).eq('status', 'pending').range(0, 0)
-  const pendingOrders = pendingOrdersRes.count ?? 0
+    const pendingOrdersRes = await service.from('orders').select('id', { count: 'exact' }).eq('status', 'pending').range(0, 0)
+    const pendingOrders = pendingOrdersRes.count ?? 0
 
-  const completedOrdersRes = await service.from('orders').select('id', { count: 'exact' }).eq('status', 'completed').range(0, 0)
-  const completedOrders = completedOrdersRes.count ?? 0
+    const completedOrdersRes = await service.from('orders').select('id', { count: 'exact' }).eq('status', 'completed').range(0, 0)
+    const completedOrders = completedOrdersRes.count ?? 0
 
-  const productsRes = await service.from('products').select('id', { count: 'exact' }).range(0, 0)
-  const totalProducts = productsRes.count ?? 0
+    const productsRes = await service.from('products').select('id', { count: 'exact' }).range(0, 0)
+    const totalProducts = productsRes.count ?? 0
 
-  const customersRes = await service.from('user_profiles').select('id', { count: 'exact' }).eq('role', 'customer').range(0, 0)
-  const totalCustomers = customersRes.count ?? 0
+    const customersRes = await service.from('user_profiles').select('id', { count: 'exact' }).eq('role', 'customer').range(0, 0)
+    const totalCustomers = customersRes.count ?? 0
 
-  // Revenue
-  const paymentsRes = await service.from('payments').select('amount, status').eq('status', 'verified')
-  const payments = (paymentsRes.data ?? []) as PaymentRowSlim[]
-  const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0)
+    // Revenue
+    const paymentsRes = await service.from('payments').select('amount, status').eq('status', 'verified')
+    const payments = (paymentsRes.data ?? []) as PaymentRowSlim[]
+    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0)
 
-  // Recent orders
-  const recentRes = await service
-    .from('orders')
-    .select('id, created_at, status, total_amount')
-    .order('created_at', { ascending: false })
-    .limit(3)
-  const recentOrders = (recentRes.data ?? []) as OrderRow[]
+    // Recent orders
+    const recentRes = await service
+      .from('orders')
+      .select('id, created_at, status, total_amount')
+      .order('created_at', { ascending: false })
+      .limit(3)
+    const recentOrders = (recentRes.data ?? []) as OrderRow[]
 
-  // Low stock products
-  const lowStockRes = await service
-    .from('products')
-    .select('id, name, stock')
-    .eq('is_active', true)
-    .lte('stock', 10)
-    .order('stock', { ascending: true })
-    .limit(5)
-  const lowStockProducts = (lowStockRes.data ?? []) as ProductRowSlim[]
+    // Low stock products
+    const lowStockRes = await service
+      .from('products')
+      .select('id, name, stock')
+      .eq('is_active', true)
+      .lte('stock', 10)
+      .order('stock', { ascending: true })
+      .limit(5)
+    const lowStockProducts = (lowStockRes.data ?? []) as ProductRowSlim[]
 
-  // Pending payments
-  const pendingPaymentsRes = await service.from('payments').select('id', { count: 'exact' }).eq('status', 'pending').range(0, 0)
-  const pendingPaymentsCount = pendingPaymentsRes.count ?? 0
+    // Pending payments
+    const pendingPaymentsRes = await service.from('payments').select('id', { count: 'exact' }).eq('status', 'pending').range(0, 0)
+    const pendingPaymentsCount = pendingPaymentsRes.count ?? 0
 
-  return NextResponse.json({
-    stats: {
-      totalOrders,
-      totalProducts,
-      totalCustomers,
-      totalRevenue,
-      pendingOrders,
-      completedOrders,
-    },
-    recentOrders,
-    lowStockProducts,
-    pendingPaymentsCount,
-  })
+    return NextResponse.json({
+      stats: {
+        totalOrders,
+        totalProducts,
+        totalCustomers,
+        totalRevenue,
+        pendingOrders,
+        completedOrders,
+      },
+      recentOrders,
+      lowStockProducts,
+      pendingPaymentsCount,
+    })
+  } catch (error) {
+    console.error('Admin stats error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' }, 
+      { status: 500 }
+    )
+  }
 }
