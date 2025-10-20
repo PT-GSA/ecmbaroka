@@ -100,6 +100,61 @@ export default function AdminDashboard() {
         </Badge>
       </div>
 
+      {/* Alerts & Notifications (live) */}
+      <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <AlertCircle className="mr-2 h-5 w-5 text-yellow-500" />
+            Peringatan & Notifikasi
+          </CardTitle>
+          <CardDescription>
+            Informasi penting yang perlu perhatian
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {loading && (
+              <>
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="flex items-center p-3 bg-white rounded-lg border border-yellow-200">
+                    <Skeleton className="h-4 w-4 mr-3 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-48" />
+                      <Skeleton className="h-3 w-64" />
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+            {!loading && lowStockProducts.length === 0 && pendingPaymentsCount === 0 && (
+              <div className="text-sm text-gray-600">Tidak ada peringatan saat ini.</div>
+            )}
+
+            {/* Low stock alerts */}
+            {!loading && lowStockProducts.map((p) => (
+              <div key={p.id} className="flex items-center p-3 bg-white rounded-lg border border-yellow-200">
+                <AlertCircle className="h-4 w-4 text-yellow-500 mr-3" />
+                <div className="flex-1">
+                  <p className="font-medium">Stok {p.name} Menipis</p>
+                  <p className="text-sm text-gray-600">Sisa {p.stock} unit, segera restock</p>
+                </div>
+              </div>
+            ))}
+
+            {/* Pending payments alerts */}
+            {!loading && pendingPaymentsCount > 0 && (
+              <div className="flex items-center p-3 bg-white rounded-lg border border-blue-200">
+                <CheckCircle className="h-4 w-4 text-blue-500 mr-3" />
+                <div className="flex-1">
+                  <p className="font-medium">{pendingPaymentsCount} Pembayaran Menunggu Konfirmasi</p>
+                  <p className="text-sm text-gray-600">Periksa dan konfirmasi bukti pembayaran</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {loading && (
         <div className="p-3 text-sm text-blue-700 bg-blue-50 rounded">Memuat data dashboard...</div>
       )}
@@ -373,60 +428,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Alerts & Notifications (live) */}
-      <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <AlertCircle className="mr-2 h-5 w-5 text-yellow-500" />
-            Peringatan & Notifikasi
-          </CardTitle>
-          <CardDescription>
-            Informasi penting yang perlu perhatian
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {loading && (
-              <>
-                {[...Array(2)].map((_, i) => (
-                  <div key={i} className="flex items-center p-3 bg-white rounded-lg border border-yellow-200">
-                    <Skeleton className="h-4 w-4 mr-3 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-48" />
-                      <Skeleton className="h-3 w-64" />
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-            {!loading && lowStockProducts.length === 0 && pendingPaymentsCount === 0 && (
-              <div className="text-sm text-gray-600">Tidak ada peringatan saat ini.</div>
-            )}
-
-            {/* Low stock alerts */}
-            {!loading && lowStockProducts.map((p) => (
-              <div key={p.id} className="flex items-center p-3 bg-white rounded-lg border border-yellow-200">
-                <AlertCircle className="h-4 w-4 text-yellow-500 mr-3" />
-                <div className="flex-1">
-                  <p className="font-medium">Stok {p.name} Menipis</p>
-                  <p className="text-sm text-gray-600">Sisa {p.stock} unit, segera restock</p>
-                </div>
-              </div>
-            ))}
-
-            {/* Pending payments alerts */}
-            {!loading && pendingPaymentsCount > 0 && (
-              <div className="flex items-center p-3 bg-white rounded-lg border border-blue-200">
-                <CheckCircle className="h-4 w-4 text-blue-500 mr-3" />
-                <div className="flex-1">
-                  <p className="font-medium">{pendingPaymentsCount} Pembayaran Menunggu Konfirmasi</p>
-                  <p className="text-sm text-gray-600">Periksa dan konfirmasi bukti pembayaran</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      
     </div>
   )
 }
