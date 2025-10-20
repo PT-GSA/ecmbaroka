@@ -1,13 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextResponse, type NextRequest } from 'next/server'
+import type { Database } from '@/types/database'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
 
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -74,7 +75,7 @@ export async function middleware(request: NextRequest) {
         .from('user_profiles')
         .select('role')
         .eq('id', user.id)
-        .maybeSingle()
+        .maybeSingle<{ role: 'customer' | 'admin' }>()
       if (!error) {
         role = profile?.role ?? null
       }
@@ -88,8 +89,8 @@ export async function middleware(request: NextRequest) {
           .from('user_profiles')
           .select('role')
           .eq('id', user.id)
-          .maybeSingle()
-        // @ts-expect-error - Supabase type inference issue with service role client
+          .maybeSingle<{ role: 'customer' | 'admin' }>()
+
         role = svcProfile?.role ?? null
       } catch {}
     }
@@ -121,7 +122,7 @@ export async function middleware(request: NextRequest) {
         .from('user_profiles')
         .select('role')
         .eq('id', user.id)
-        .single()
+        .single<{ role: 'customer' | 'admin' }>()
 
       if (request.nextUrl.pathname === '/affiliate/login') {
         // If visiting affiliate login and already authenticated, send active affiliates to their dashboard

@@ -80,6 +80,8 @@ export async function POST(req: Request) {
     } catch {}
 
     // Verifikasi pesanan milik user yang sedang login
+    type OrderBasic = { id: string; user_id: string; status: Database['public']['Tables']['orders']['Row']['status'] }
+
     const { data: orderRowRaw, error: orderError } = await service
       .from('orders')
       .select('id, user_id, status')
@@ -90,7 +92,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Gagal mengambil data pesanan' }, { status: 500 })
     }
 
-    type OrderBasic = { id: string; user_id: string; status: Database['public']['Tables']['orders']['Row']['status'] }
     const orderRow = (orderRowRaw as OrderBasic | null)
 
     if (!orderRow || orderRow.user_id !== actor.id) {
@@ -117,8 +118,9 @@ export async function POST(req: Request) {
       const msg = ue?.message ?? String(uploadError)
       const status = ue?.status
       const name = ue?.name
+      const nameStr = typeof name === 'string' ? name : undefined
       return NextResponse.json(
-        { error: 'Upload gagal', detail: msg, status, name },
+        { error: 'Upload gagal', detail: msg, status, name: nameStr },
         { status: 400 }
       )
     }
@@ -136,28 +138,45 @@ export async function POST(req: Request) {
       status: 'pending',
     }
 
-    const { data: paymentInsert, error: paymentError } = await service
-      .from('payments')
-      // @ts-expect-error - Supabase type inference issue with service role client
+    // Use a typed builder to avoid Supabase generics inference issues
+    const insertBuilder = service.from('payments') as unknown as {
+      insert: (
+        values: Database['public']['Tables']['payments']['Insert']
+      ) => {
+        select: (columns?: string) => {
+          single: () => Promise<{
+            data: Pick<Database['public']['Tables']['payments']['Row'], 'id'> | null
+            error: unknown
+          }>
+        }
+      }
+    }
+
+    const { data: paymentInsert, error: paymentError } = await insertBuilder
       .insert(insertPayload)
       .select('id')
       .single()
 
     if (paymentError) {
-      return NextResponse.json({ error: 'Gagal menyimpan data pembayaran', detail: paymentError.message }, { status: 500 })
+      const paymentDetail = String((paymentError as { message?: unknown })?.message ?? paymentError)
+      return NextResponse.json({ error: 'Gagal menyimpan data pembayaran', detail: paymentDetail }, { status: 500 })
     }
 
-    const { error: updateError } = await service
-      .from('orders')
-      // @ts-expect-error - Supabase type inference issue with service role client
+    const updateBuilder = service.from('orders') as unknown as {
+      update: (
+        values: Database['public']['Tables']['orders']['Update']
+      ) => { eq: (column: string, value: string) => Promise<{ error: unknown }> }
+    }
+
+    const { error: updateError } = await updateBuilder
       .update({ status: 'paid' })
       .eq('id', orderId)
 
     if (updateError) {
-      return NextResponse.json({ error: 'Gagal memperbarui status pesanan', detail: updateError.message }, { status: 500 })
+      const updateDetail = String((updateError as { message?: unknown })?.message ?? updateError)
+      return NextResponse.json({ error: 'Gagal memperbarui status pesanan', detail: updateDetail }, { status: 500 })
     }
 
-    // @ts-expect-error - Supabase type inference issue with service role client
     return NextResponse.json({ ok: true, proof_url: proofUrl, payment_id: paymentInsert?.id ?? null })
   } catch (e) {
     return NextResponse.json({ error: 'Unhandled error', detail: String(e) }, { status: 500 })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import type { Database } from '@/types/database'
 
 function slugify(input: string): string {
   return (input || '')
@@ -57,15 +58,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Slug sudah digunakan' }, { status: 409 })
     }
 
-    const { data: inserted, error: insertError } = await service
-      .from('affiliate_links')
-      // @ts-expect-error - Supabase type inference issue with service role client
+    type AffiliateLinkInsert = Database['public']['Tables']['affiliate_links']['Insert']
+    type AffiliateLinkRow = Database['public']['Tables']['affiliate_links']['Row']
+
+    const insertBuilder = service.from('affiliate_links') as unknown as {
+      insert: (values: AffiliateLinkInsert) => {
+        select: (columns?: string) => {
+          maybeSingle: () => Promise<{ data: AffiliateLinkRow | null; error: unknown }>
+        }
+      }
+    }
+
+    const { data: inserted, error: insertError } = await insertBuilder
       .insert({
         affiliate_id: affiliateId,
         campaign: campaign || null,
         url_slug,
         active: true,
-      })
+      } as AffiliateLinkInsert)
       .select('id, affiliate_id, campaign, url_slug, active, created_at')
       .maybeSingle()
 

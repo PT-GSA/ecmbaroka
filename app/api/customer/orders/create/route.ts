@@ -98,12 +98,14 @@ export async function POST(req: NextRequest) {
       validAffiliateLinkId = null
     }
     // Prefer the updated function signature with p_date_ymd first
-    // @ts-expect-error - Supabase type inference issue with service role client
-    let rpcRes = await service.rpc('next_order_counter', { p_date_ymd: ymdFull })
+    const rpc = service.rpc as unknown as (
+      fn: 'next_order_counter',
+      params: Record<string, unknown>
+    ) => Promise<{ data: number | null; error: unknown }>
+    let rpcRes = await rpc('next_order_counter', { p_date_ymd: ymdFull })
     // If the older signature is still deployed, fallback to date_ymd
     if (rpcRes.error) {
-      // @ts-expect-error - Supabase type inference issue with service role client
-      rpcRes = await service.rpc('next_order_counter', { date_ymd: ymdFull })
+      rpcRes = await rpc('next_order_counter', { date_ymd: ymdFull })
     }
     let orderCode = ''
     const nextCounter = Number(rpcRes.data ?? 0)
@@ -145,37 +147,30 @@ export async function POST(req: NextRequest) {
       phone: (phone && phone.trim()) || '-',
       notes: notes ?? null,
       order_code: orderCode,
-      // created_at is default
     }
-    // Include affiliate fields only if valid to avoid schema cache errors
-    if (validAffiliateId) {
-      insertOrder.affiliate_id = validAffiliateId
-    }
-    if (validAffiliateLinkId) {
-      insertOrder.affiliate_link_id = validAffiliateLinkId
+    if (validAffiliateId) insertOrder.affiliate_id = validAffiliateId
+    if (validAffiliateLinkId) insertOrder.affiliate_link_id = validAffiliateLinkId
+
+    const insertOrderBuilder = service.from('orders') as unknown as {
+      insert: (values: OrderInsert) => Promise<{ error: unknown }>
     }
 
-    // @ts-expect-error - Supabase type inference issue with service role client
-    let { error: orderErr } = await service.from('orders').insert(insertOrder)
+    let { error: orderErr } = await insertOrderBuilder.insert(insertOrder)
     if (orderErr) {
       console.error('Order insert error:', orderErr)
-      const isDupCode = typeof orderErr?.message === 'string' && /idx_orders_order_code|unique/i.test(orderErr.message)
+      const isDupCode = typeof (orderErr as { message?: string }).message === 'string' && /idx_orders_order_code|unique/i.test((orderErr as { message?: string }).message as string)
       if (isDupCode) {
-        // Try once more with a new random code
         const base = `${yearShort}${month}${day}`
         const newSuffix = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
         orderCode = `${base}${newSuffix}`
         insertOrder.order_code = orderCode
-        // @ts-expect-error - Supabase type inference issue with service role client
-        const retry = await service.from('orders').insert(insertOrder)
+        const retry = await insertOrderBuilder.insert(insertOrder)
         orderErr = retry.error ?? null
       }
 
-      // If schema cache doesn't recognize affiliate columns, try progressively
       const errMsg = (orderErr as { message?: string }).message || ''
       const errCode = (orderErr as { code?: string }).code || ''
       if (orderErr && errCode === 'PGRST204') {
-        // First: if complaint is about affiliate_link_id, retry with only affiliate_id (if valid)
         if (/affiliate_link_id/i.test(errMsg) && validAffiliateId) {
           const insertOrderOnlyAff: OrderInsert = {
             id: insertOrder.id!,
@@ -188,11 +183,9 @@ export async function POST(req: NextRequest) {
             order_code: insertOrder.order_code ?? null,
             affiliate_id: validAffiliateId,
           }
-          // @ts-expect-error - Supabase type inference issue with service role client
-          const retryOnlyAff = await service.from('orders').insert(insertOrderOnlyAff)
+          const retryOnlyAff = await insertOrderBuilder.insert(insertOrderOnlyAff)
           orderErr = retryOnlyAff.error ?? null
         }
-        // Second: if still failing or message mentions affiliate_id, retry with no affiliate fields
         if (orderErr && /affiliate_id/i.test(((orderErr as { message?: string }).message || ''))) {
           const insertOrderNoAff: OrderInsert = {
             id: insertOrder.id!,
@@ -204,8 +197,7 @@ export async function POST(req: NextRequest) {
             notes: insertOrder.notes ?? null,
             order_code: insertOrder.order_code ?? null,
           }
-          // @ts-expect-error - Supabase type inference issue with service role client
-          const retryNoAff = await service.from('orders').insert(insertOrderNoAff)
+          const retryNoAff = await insertOrderBuilder.insert(insertOrderNoAff)
           orderErr = retryNoAff.error ?? null
         }
       }
@@ -227,8 +219,12 @@ export async function POST(req: NextRequest) {
       quantity: it.quantity,
       price_at_purchase: it.price_at_purchase,
     }))
-    // @ts-expect-error - Supabase type inference issue with service role client
-    const { error: itemsErr } = await service.from('order_items').insert(orderItems)
+
+    const insertItemsBuilder = service.from('order_items') as unknown as {
+      insert: (values: OrderItemInsert[]) => Promise<{ error: unknown }>
+    }
+
+    const { error: itemsErr } = await insertItemsBuilder.insert(orderItems)
     if (itemsErr) {
       return NextResponse.json({ error: 'Failed to add order items' }, { status: 500 })
     }

@@ -9,5 +9,5 @@ export function createServiceClient() {
     throw new Error('Supabase service configuration is missing. Please check your environment variables.')
   }
 
-  return createClient<Database>(config.url, config.serviceRoleKey)
+  return createClient<Database, 'public'>(config.url, config.serviceRoleKey)
 }
