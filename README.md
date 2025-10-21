@@ -404,6 +404,7 @@ Untuk pertanyaan atau bantuan:
 - **[Tutorial Affiliate](AFFILIATE_TUTORIAL.md)** - Panduan lengkap untuk affiliate marketer
 - **[Admin Guide](ADMIN_AFFILIATE_GUIDE.md)** - Panduan admin mengelola program affiliate
 - **[Customer Guide](CUSTOMER_AFFILIATE_GUIDE.md)** - Panduan customer menggunakan link referral
+- **[CSP Documentation](CSP_DOCUMENTATION.md)** - Dokumentasi Content Security Policy
 
 ### E-book Gratis:
 - "Panduan Nutrisi untuk Keluarga"

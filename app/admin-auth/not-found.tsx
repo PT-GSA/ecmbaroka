@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Home, ArrowLeft, LogIn, Shield, Settings } from 'lucide-react'
+import { Home, ArrowLeft, LogIn, Settings } from 'lucide-react'
 
 export default function AdminAuthNotFound() {
   return (

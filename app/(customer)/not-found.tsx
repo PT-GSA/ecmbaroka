@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Home, ArrowLeft, ShoppingCart, Search, Heart } from 'lucide-react'
+import { Home, ArrowLeft, ShoppingCart, Search } from 'lucide-react'
 
 export default function CustomerNotFound() {
   return (
@@ -143,8 +143,8 @@ export default function CustomerNotFound() {
         <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
           <h3 className="font-semibold text-yellow-900 mb-3">💬 Testimoni Customer</h3>
           <blockquote className="text-yellow-800 text-sm italic">
-            "Susu Baroka memang berkualitas tinggi. Anak-anak suka banget dan saya tenang karena tanpa pengawet. 
-            Pengiriman juga cepat dan packaging rapi. Recommended untuk keluarga Indonesia!"
+            &quot;Susu Baroka memang berkualitas tinggi. Anak-anak suka banget dan saya tenang karena tanpa pengawet. 
+            Pengiriman juga cepat dan packaging rapi. Recommended untuk keluarga Indonesia!&quot;
           </blockquote>
           <p className="text-yellow-700 text-xs mt-2">- Ibu Sarah, Jakarta</p>
         </div>
