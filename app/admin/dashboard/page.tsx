@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/skeleton'
+import AdminNotifications from '@/components/admin/admin-notifications'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -353,7 +354,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions & Notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
@@ -381,8 +382,16 @@ export default function AdminDashboard() {
                 Kelola Pelanggan
               </Link>
             </Button>
+            <Button variant="outline" asChild className="w-full justify-start">
+              <Link href="/admin/withdrawals">
+                <DollarSign className="mr-2 h-4 w-4" />
+                Kelola Withdrawal
+              </Link>
+            </Button>
           </CardContent>
         </Card>
+
+        <AdminNotifications />
 
         <Card>
           <CardHeader>

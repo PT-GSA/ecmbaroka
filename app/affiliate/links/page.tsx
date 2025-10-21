@@ -4,10 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { resolveAppUrl } from '@/lib/utils'
-import CreateAffiliateLinkForm from '@/components/affiliate/create-link-form'
-import LinksClient from '@/components/affiliate/links-client'
+import AffiliateLinksWrapper from '@/components/affiliate/affiliate-links-wrapper'
 import AffiliateLayout from '@/components/affiliate/layout'
-import { Plus } from 'lucide-react'
 
 type AffiliateRow = {
   id: string
@@ -104,53 +102,11 @@ export default async function AffiliateLinksPage() {
       code: aff.code,
       email: aff.email || ''
     }}>
-      <div className="space-y-6 lg:space-y-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Links & Campaigns</h1>
-            <p className="text-gray-600">Kelola link referral dan campaign Anda</p>
-          </div>
-        </div>
-
-        {/* Create New Link */}
-        <Card className="shadow-sm rounded-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5" />
-              Buat Link Referral Baru
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CreateAffiliateLinkForm appUrl={appUrl} />
-          </CardContent>
-        </Card>
-
-        {/* Links List */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900">Link Referral Anda</h2>
-          
-          <LinksClient 
-            links={links}
-            clicks={clicks}
-            appUrl={appUrl}
-          />
-        </div>
-
-        {/* Tips */}
-        <Card className="shadow-sm rounded-xl bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-3">Tips untuk Meningkatkan Konversi</h3>
-            <ul className="space-y-2 text-sm text-blue-800">
-              <li>• Gunakan nama campaign yang menarik dan mudah diingat</li>
-              <li>• Bagikan link di media sosial dengan konten yang menarik</li>
-              <li>• Buat beberapa campaign untuk audiens yang berbeda</li>
-              <li>• Pantau performa setiap campaign secara berkala</li>
-              <li>• Gunakan slug yang pendek dan mudah diingat</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
+      <AffiliateLinksWrapper 
+        initialLinks={links}
+        clicks={clicks}
+        appUrl={appUrl}
+      />
     </AffiliateLayout>
   )
 }

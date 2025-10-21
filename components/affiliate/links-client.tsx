@@ -31,6 +31,7 @@ interface LinksClientProps {
 export default function LinksClient({ links, clicks, appUrl }: LinksClientProps) {
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const [linksState, setLinksState] = useState<AffiliateLinkRow[]>(links)
 
   // Calculate clicks per campaign
   const clicksByCampaign = new Map<string, number>()
@@ -54,8 +55,10 @@ export default function LinksClient({ links, clicks, appUrl }: LinksClientProps)
         throw new Error(error.error || 'Failed to update link')
       }
       
-      // Refresh the page to show updated data
-      window.location.reload()
+      // Update local state instead of reloading page
+      setLinksState(prev => prev.map(link => 
+        link.id === id ? { ...link, ...data } : link
+      ))
     } catch (error) {
       console.error('Failed to update link:', error)
       alert('Gagal mengupdate link. Silakan coba lagi.')
@@ -67,7 +70,7 @@ export default function LinksClient({ links, clicks, appUrl }: LinksClientProps)
   const handleDeleteLink = async (id: string) => {
     setIsDeleting(id)
     try {
-      const response = await fetch(`/api/affiliate/links/${id}?id=${id}`, {
+      const response = await fetch(`/api/affiliate/links/${id}`, {
         method: 'DELETE'
       })
       
@@ -76,8 +79,8 @@ export default function LinksClient({ links, clicks, appUrl }: LinksClientProps)
         throw new Error(error.error || 'Failed to delete link')
       }
       
-      // Refresh the page to show updated data
-      window.location.reload()
+      // Update local state instead of reloading page
+      setLinksState(prev => prev.filter(link => link.id !== id))
     } catch (error) {
       console.error('Failed to delete link:', error)
       alert('Gagal menghapus link. Silakan coba lagi.')
@@ -86,7 +89,7 @@ export default function LinksClient({ links, clicks, appUrl }: LinksClientProps)
     }
   }
 
-  if (links.length === 0) {
+  if (linksState.length === 0) {
     return (
       <Card className="shadow-sm rounded-xl">
         <CardContent className="p-8 text-center">
@@ -100,7 +103,7 @@ export default function LinksClient({ links, clicks, appUrl }: LinksClientProps)
 
   return (
     <div className="grid gap-4">
-      {links.map((link) => {
+      {linksState.map((link) => {
         const campaignKey = (link.campaign ?? '').trim()
         const clicksCount = clicksByCampaign.get(campaignKey) ?? 0
         const trackingUrl = `${appUrl}/api/affiliate/track?slug=${encodeURIComponent(link.url_slug)}`

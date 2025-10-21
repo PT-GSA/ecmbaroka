@@ -1,7 +1,7 @@
--- Fixed RLS Policies for Affiliate Withdrawals
--- Jalankan SETELAH schema utama berhasil dibuat
+-- Clean Affiliate Withdrawal Policies
+-- Jalankan file ini untuk membersihkan dan membuat ulang semua policy
 
--- Drop existing policies (both basic and specific)
+-- Drop ALL existing policies
 DROP POLICY IF EXISTS "Allow authenticated read" ON public.affiliate_withdrawals;
 DROP POLICY IF EXISTS "Allow authenticated insert" ON public.affiliate_withdrawals;
 DROP POLICY IF EXISTS "Allow authenticated update" ON public.affiliate_withdrawals;
@@ -20,8 +20,7 @@ DROP POLICY IF EXISTS "Allow authenticated update" ON public.affiliate_commissio
 DROP POLICY IF EXISTS "Affiliates can view own commission payments" ON public.affiliate_commission_payments;
 DROP POLICY IF EXISTS "Admins can manage commission payments" ON public.affiliate_commission_payments;
 
--- Create specific RLS policies
--- Affiliates can only see their own withdrawals
+-- Create new policies for affiliate_withdrawals
 CREATE POLICY "Affiliates can view own withdrawals" ON public.affiliate_withdrawals
   FOR SELECT USING (
     affiliate_id IN (
@@ -29,7 +28,6 @@ CREATE POLICY "Affiliates can view own withdrawals" ON public.affiliate_withdraw
     )
   );
 
--- Affiliates can create withdrawal requests
 CREATE POLICY "Affiliates can create withdrawals" ON public.affiliate_withdrawals
   FOR INSERT WITH CHECK (
     affiliate_id IN (
@@ -37,7 +35,6 @@ CREATE POLICY "Affiliates can create withdrawals" ON public.affiliate_withdrawal
     )
   );
 
--- Admins can do everything (using correct user_profiles table structure)
 CREATE POLICY "Admins can manage withdrawals" ON public.affiliate_withdrawals
   FOR ALL USING (
     EXISTS (
@@ -46,7 +43,7 @@ CREATE POLICY "Admins can manage withdrawals" ON public.affiliate_withdrawals
     )
   );
 
--- Bank accounts policies
+-- Create new policies for affiliate_bank_accounts
 CREATE POLICY "Affiliates can manage own bank accounts" ON public.affiliate_bank_accounts
   FOR ALL USING (
     affiliate_id IN (
@@ -54,7 +51,7 @@ CREATE POLICY "Affiliates can manage own bank accounts" ON public.affiliate_bank
     )
   );
 
--- Commission payments policies
+-- Create new policies for affiliate_commission_payments
 CREATE POLICY "Affiliates can view own commission payments" ON public.affiliate_commission_payments
   FOR SELECT USING (
     affiliate_id IN (

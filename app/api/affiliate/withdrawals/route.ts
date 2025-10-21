@@ -40,10 +40,30 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // For now, return success - withdrawal creation will be implemented via SQL functions
+    // Create withdrawal request
+    const affiliateId = (affiliate as { id: string }).id
+    const { error: withdrawalError } = await supabase
+      .from('affiliate_withdrawals')
+      // @ts-expect-error - Supabase client type issue with custom tables
+      .insert({
+        affiliate_id: affiliateId,
+        amount: withdrawalAmount,
+        bank_name,
+        account_number,
+        account_holder_name,
+        status: 'pending'
+      })
+
+    if (withdrawalError) {
+      console.error('Withdrawal creation error:', withdrawalError)
+      return NextResponse.json({ error: 'Failed to create withdrawal request' }, { status: 500 })
+    }
+
+    // Skip notification creation for now - will be handled by admin dashboard
+
     return NextResponse.json({ 
       success: true, 
-      message: 'Withdrawal request functionality will be implemented via SQL functions' 
+      message: 'Withdrawal request submitted successfully' 
     })
 
   } catch (error) {

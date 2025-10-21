@@ -252,6 +252,56 @@ export interface Database {
           created_at?: string
         }
       }
+      affiliate_withdrawals: {
+        Row: {
+          id: string
+          affiliate_id: string
+          amount: number
+          status: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected'
+          bank_name: string
+          account_number: string
+          account_holder_name: string
+          request_notes: string | null
+          admin_notes: string | null
+          processed_by: string | null
+          processed_at: string | null
+          transfer_reference: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          affiliate_id: string
+          amount: number
+          status?: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected'
+          bank_name: string
+          account_number: string
+          account_holder_name: string
+          request_notes?: string | null
+          admin_notes?: string | null
+          processed_by?: string | null
+          processed_at?: string | null
+          transfer_reference?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          affiliate_id?: string
+          amount?: number
+          status?: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected'
+          bank_name?: string
+          account_number?: string
+          account_holder_name?: string
+          request_notes?: string | null
+          admin_notes?: string | null
+          processed_by?: string | null
+          processed_at?: string | null
+          transfer_reference?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+      }
       affiliates: {
         Row: {
           id: string

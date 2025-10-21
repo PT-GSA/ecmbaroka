@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Database } from '@/types/database'
 
 function slugify(input: string): string {
   return (input || '')
@@ -16,7 +17,13 @@ function slugify(input: string): string {
     .slice(0, 64)
 }
 
-export default function CreateAffiliateLinkForm({ appUrl }: { appUrl: string }) {
+export default function CreateAffiliateLinkForm({ 
+  appUrl, 
+  onLinkCreated 
+}: { 
+  appUrl: string
+  onLinkCreated?: (link: Database['public']['Tables']['affiliate_links']['Row']) => void 
+}) {
   const router = useRouter()
   const [campaign, setCampaign] = useState('')
   const [slug, setSlug] = useState('')
@@ -55,7 +62,11 @@ export default function CreateAffiliateLinkForm({ appUrl }: { appUrl: string }) 
         return
       }
       setSuccessMsg('Link berhasil dibuat')
-      router.refresh()
+      if (onLinkCreated) {
+        onLinkCreated(data.link)
+      } else {
+        router.refresh()
+      }
     } catch  {
       setError('Terjadi kesalahan')
     } finally {

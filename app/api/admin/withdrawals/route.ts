@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import type { Database } from '@/types/database'
 
 async function ensureAdmin(): Promise<{ ok: true } | { ok: false; redirect: NextResponse }> {
   const supabase = await createClient()
@@ -13,7 +14,7 @@ async function ensureAdmin(): Promise<{ ok: true } | { ok: false; redirect: Next
   const { data: profile } = await supabase
     .from('user_profiles')
     .select('role')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .maybeSingle()
 
   if (!profile || (profile as { role: string }).role !== 'admin') {
@@ -96,10 +97,72 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
     }
 
-    // For now, return success - actual update will be handled by SQL functions
+    // Get admin user info
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const service = createServiceClient()
+    
+    // Update withdrawal status using direct SQL query
+    const updateData: Database['public']['Tables']['affiliate_withdrawals']['Update'] = {
+      status: body.status as Database['public']['Tables']['affiliate_withdrawals']['Row']['status'],
+      admin_notes: body.admin_notes || null,
+      transfer_reference: body.transfer_reference || null,
+      processed_by: user.id,
+      processed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    
+    const { error: updateError } = await service
+      .from('affiliate_withdrawals')
+      // @ts-expect-error - Supabase client type issue with custom tables
+      .update(updateData)
+      .eq('id', withdrawal_id)
+
+    if (updateError) {
+      console.error('Withdrawal update error:', updateError)
+      return NextResponse.json({ error: 'Failed to update withdrawal' }, { status: 500 })
+    }
+
+    // If status is completed, update affiliate's total_paid_commission
+    if (body.status === 'completed') {
+      // Get withdrawal data to update commission
+      const { data: withdrawalData } = await service
+        .from('affiliate_withdrawals')
+        .select('affiliate_id, amount')
+        .eq('id', withdrawal_id)
+        .single()
+
+      if (withdrawalData) {
+        const withdrawal = withdrawalData as { affiliate_id: string; amount: number }
+        
+        // Get current total_paid_commission
+        const { data: affiliateData } = await service
+          .from('affiliates')
+          .select('total_paid_commission')
+          .eq('id', withdrawal.affiliate_id)
+          .single()
+
+        if (affiliateData) {
+          const affiliate = affiliateData as { total_paid_commission: number }
+          const newTotal = Number(affiliate.total_paid_commission) + Number(withdrawal.amount)
+          
+          await service
+            .from('affiliates')
+            // @ts-expect-error - Supabase client type issue with custom tables
+            .update({ total_paid_commission: newTotal })
+            .eq('id', withdrawal.affiliate_id)
+        }
+      }
+    }
+
     return NextResponse.json({ 
       success: true, 
-      message: 'Withdrawal update functionality will be implemented via SQL functions' 
+      message: 'Withdrawal updated successfully' 
     })
 
   } catch (error) {
