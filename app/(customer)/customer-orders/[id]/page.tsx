@@ -162,10 +162,10 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="relative mb-8">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-indigo-600/10 rounded-3xl blur-3xl"></div>
-        <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-6 sm:p-8">
+        <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
@@ -191,29 +191,29 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+          <div className="mt-6 flex items-center gap-3 overflow-x-auto">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-500 whitespace-nowrap">
               <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                 <ShoppingCart className="w-4 h-4 text-gray-500" />
               </div>
               Checkout
             </div>
-            <div className="h-px w-10 sm:w-20 bg-gray-200"></div>
-            <div className={`flex items-center gap-2 text-sm font-medium ${['pending','paid'].includes(order.status) ? 'text-blue-700' : 'text-gray-500'}`}>
+            <div className="h-px w-10 sm:w-20 lg:w-32 bg-gray-200 flex-shrink-0"></div>
+            <div className={`flex items-center gap-2 text-sm font-medium ${['pending','paid'].includes(order.status) ? 'text-blue-700' : 'text-gray-500'} whitespace-nowrap`}>
               <div className={`w-8 h-8 rounded-full ${['pending','paid'].includes(order.status) ? 'bg-blue-600' : 'bg-gray-100'} flex items-center justify-center`}>
                 <CreditCard className={`w-4 h-4 ${['pending','paid'].includes(order.status) ? 'text-white' : 'text-gray-500'}`} />
               </div>
               Pembayaran
             </div>
-            <div className="h-px w-10 sm:w-20 bg-gray-200"></div>
-            <div className={`flex items-center gap-2 text-sm font-medium ${['verified','processing'].includes(order.status) ? 'text-blue-700' : 'text-gray-500'}`}>
+            <div className="h-px w-10 sm:w-20 lg:w-32 bg-gray-200 flex-shrink-0"></div>
+            <div className={`flex items-center gap-2 text-sm font-medium ${['verified','processing'].includes(order.status) ? 'text-blue-700' : 'text-gray-500'} whitespace-nowrap`}>
               <div className={`w-8 h-8 rounded-full ${['verified','processing'].includes(order.status) ? 'bg-blue-600' : 'bg-gray-100'} flex items-center justify-center`}>
                 <CheckCircle className={`w-4 h-4 ${['verified','processing'].includes(order.status) ? 'text-white' : 'text-gray-500'}`} />
               </div>
               Verifikasi
             </div>
-            <div className="h-px w-10 sm:w-20 bg-gray-200"></div>
-            <div className={`flex items-center gap-2 text-sm font-medium ${['shipped','completed'].includes(order.status) ? 'text-blue-700' : 'text-gray-500'}`}>
+            <div className="h-px w-10 sm:w-20 lg:w-32 bg-gray-200 flex-shrink-0"></div>
+            <div className={`flex items-center gap-2 text-sm font-medium ${['shipped','completed'].includes(order.status) ? 'text-blue-700' : 'text-gray-500'} whitespace-nowrap`}>
               <div className={`w-8 h-8 rounded-full ${['shipped','completed'].includes(order.status) ? 'bg-blue-600' : 'bg-gray-100'} flex items-center justify-center`}>
                 <Truck className={`w-4 h-4 ${['shipped','completed'].includes(order.status) ? 'text-white' : 'text-gray-500'}`} />
               </div>
@@ -223,9 +223,9 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid lg:grid-cols-4 gap-6 lg:gap-8">
         {/* Order Details */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="space-y-6 lg:col-span-3">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -252,29 +252,31 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
                 </h4>
                 <div className="space-y-3">
                   {order.order_items.map((item: OrderItem) => (
-                    <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                    <div key={item.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                         {item.products.image_url ? (
                           <Image
                             src={item.products.image_url}
                             alt={item.products.name}
-                            width={48}
-                            height={48}
-                            className="object-cover"
+                            width={64}
+                            height={64}
+                            className="object-cover w-full h-full"
                           />
                         ) : (
-                          <Package className="h-6 w-6 text-gray-400" />
+                          <Package className="h-8 w-8 text-gray-400" />
                         )}
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{item.products.name}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-lg">{item.products.name}</p>
                         <p className="text-sm text-gray-600">
                           {item.quantity} x {formatCurrency(item.price_at_purchase)}
                         </p>
                       </div>
-                      <p className="font-semibold text-primary">
-                        {formatCurrency(item.price_at_purchase * item.quantity)}
-                      </p>
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-semibold text-lg text-primary">
+                          {formatCurrency(item.price_at_purchase * item.quantity)}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -284,14 +286,14 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
 
               {/* Shipping Info */}
               <div className="space-y-3">
-                <h4 className="font-medium flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
+                <h4 className="font-medium flex items-center gap-2 text-lg">
+                  <MapPin className="h-5 w-5" />
                   Alamat Pengiriman
                 </h4>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm">{order.shipping_address}</p>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-base leading-relaxed">{order.shipping_address}</p>
                   {order.phone && (
-                    <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                    <p className="text-sm text-gray-600 flex items-center gap-2 mt-3">
                       <Phone className="h-4 w-4" />
                       {order.phone}
                     </p>
@@ -302,9 +304,9 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
               {order.notes && (
                 <>
                   <Separator />
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Catatan</h4>
-                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-lg">Catatan</h4>
+                    <p className="text-base text-gray-600 bg-gray-50 p-4 rounded-lg leading-relaxed">
                       {order.notes}
                     </p>
                   </div>
@@ -314,16 +316,16 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
               <Separator />
 
               {/* Total */}
-              <div className="flex justify-between items-center text-lg font-semibold">
+              <div className="flex justify-between items-center text-xl font-semibold bg-primary/5 p-4 rounded-lg">
                 <span>Total:</span>
-                <span className="text-primary">{formatCurrency(order.total_amount)}</span>
+                <span className="text-primary text-2xl">{formatCurrency(order.total_amount)}</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Payment Section */}
-        <div className="space-y-6 lg:sticky lg:top-6">
+        <div className="space-y-6 lg:sticky lg:top-6 lg:col-span-1">
           {/* Payment Instructions */}
           {order.status === 'pending' && (
             <Card>

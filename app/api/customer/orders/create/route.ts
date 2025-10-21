@@ -142,13 +142,13 @@ export async function POST(req: NextRequest) {
     let orderCode = ''
     if (serviceAvailable) {
       try {
-        const rpc = service!.rpc as unknown as (
-          fn: 'next_order_counter',
-          params: Record<string, unknown>
-        ) => Promise<{ data: number | null; error: unknown }>
-        let rpcRes = await rpc('next_order_counter', { p_date_ymd: ymdFull })
+        // Use direct RPC call with type assertion
+        const rpcClient = service!.rpc
+        // @ts-expect-error - Supabase RPC type issue
+        let rpcRes = await rpcClient('next_order_counter', { p_date_ymd: ymdFull })
         if (rpcRes.error) {
-          rpcRes = await rpc('next_order_counter', { date_ymd: ymdFull })
+          // @ts-expect-error - Supabase RPC type issue
+          rpcRes = await rpcClient('next_order_counter', { date_ymd: ymdFull })
         }
         const nextCounter = Number(rpcRes.data ?? 0)
         if (!rpcRes.error && nextCounter > 0) {
@@ -204,13 +204,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Terdapat produk yang tidak aktif' }, { status: 400 })
       }
     }
-    const priceMap = new Map(productsAny.map((p) => [p.id, Number(p.price)]))
-    const computedOrderItems = items.map((it) => ({
-      order_id: orderId,
-      product_id: it.product_id,
-      quantity: it.quantity,
-      price_at_purchase: Number(priceMap.get(it.product_id) ?? 0),
+    const priceMap = new Map(productsAny.map((p) => {
+      const price = Number(p.price)
+      // Round to 2 decimal places to avoid precision issues
+      const roundedPrice = Math.round(price * 100) / 100
+      return [p.id, roundedPrice]
     }))
+    const computedOrderItems = items.map((it) => {
+      const price = Number(priceMap.get(it.product_id) ?? 0)
+      // Round price to 2 decimal places to avoid precision issues
+      const roundedPrice = Math.round(price * 100) / 100
+      return {
+        order_id: orderId,
+        product_id: it.product_id,
+        quantity: it.quantity,
+        price_at_purchase: roundedPrice,
+      }
+    })
     if (computedOrderItems.some((oi) => oi.price_at_purchase <= 0)) {
       return NextResponse.json({ error: 'Harga produk tidak valid' }, { status: 400 })
     }
@@ -218,6 +228,14 @@ export async function POST(req: NextRequest) {
     if (totalAmount <= 0) {
       return NextResponse.json({ error: 'Total order tidak valid' }, { status: 400 })
     }
+    
+    // Check for numeric overflow (max 99,999,999.99)
+    if (totalAmount > 99999999.99) {
+      return NextResponse.json({ error: 'Total order terlalu besar' }, { status: 400 })
+    }
+    
+    // Round to 2 decimal places to avoid precision issues
+    totalAmount = Math.round(totalAmount * 100) / 100
 
     // Insert order
     type OrderInsert = Database['public']['Tables']['orders']['Insert']
