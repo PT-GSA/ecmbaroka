@@ -398,6 +398,28 @@ Untuk pertanyaan atau bantuan:
 - Email: support@susubaroka.com
 - GitHub Issues: [Repository Issues]
 
+## 📚 Resources & Tutorials
+
+### Tutorial Lengkap:
+- **[Tutorial Affiliate](AFFILIATE_TUTORIAL.md)** - Panduan lengkap untuk affiliate marketer
+- **[Admin Guide](ADMIN_AFFILIATE_GUIDE.md)** - Panduan admin mengelola program affiliate
+- **[Customer Guide](CUSTOMER_AFFILIATE_GUIDE.md)** - Panduan customer menggunakan link referral
+
+### E-book Gratis:
+- "Panduan Nutrisi untuk Keluarga"
+- "Tips Memilih Susu yang Tepat"
+- "Resep Olahan Susu Sehat"
+
+### Video Tutorial:
+- "Cara Memesan Susu Baroka"
+- "Tips Berbelanja Online"
+- "Cara Menggunakan Link Referral"
+
+### Blog Artikel:
+- "Manfaat Susu Steril untuk Keluarga"
+- "Tips Menyimpan Susu dengan Benar"
+- "Resep Minuman Sehat dengan Susu"
+
 ## 📈 Changelog & Roadmap
 
 ### ✅ Completed Features (v1.0.0)
