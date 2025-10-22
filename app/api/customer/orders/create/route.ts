@@ -229,9 +229,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Total order tidak valid' }, { status: 400 })
     }
     
-    // Check for numeric overflow (max 99,999,999.99)
-    if (totalAmount > 99999999.99) {
-      return NextResponse.json({ error: 'Total order terlalu besar' }, { status: 400 })
+    // Check for numeric overflow (max 9,999,999,999.99 - almost 10 billion)
+    // This matches the new database precision of NUMERIC(12,2)
+    if (totalAmount > 9999999999.99) {
+      return NextResponse.json({ error: 'Total order terlalu besar (maksimal Rp 9,999,999,999.99)' }, { status: 400 })
+    }
+    
+    // Additional validation: check for reasonable business limits
+    // For Susu Baroka, reasonable limit is 1 billion (1,000,000,000)
+    if (totalAmount > 1000000000) {
+      return NextResponse.json({ 
+        error: 'Total order terlalu besar untuk bisnis susu (maksimal Rp 1,000,000,000). Silakan hubungi admin untuk order khusus.' 
+      }, { status: 400 })
     }
     
     // Round to 2 decimal places to avoid precision issues

@@ -72,7 +72,7 @@ export async function GET(_req: NextRequest) {
     order_id: p.order_id,
     customer_name: usersMap[ordersMap[p.order_id]?.user_id ?? '']?.full_name ?? 'Customer',
     amount: Number(p.amount),
-    method: 'Bank Transfer',
+    method: p.bank_name || 'Bank Transfer',
     status: p.status,
     created_at: p.created_at,
   }))

@@ -257,7 +257,7 @@ export default function AdminOrdersPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Total Pesanan</p>
-                <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
+                <p className="text-sm font-bold text-gray-900">{totalOrders}</p>
                 <p className="text-xs text-gray-500">Semua pesanan</p>
               </div>
             </div>
@@ -270,7 +270,7 @@ export default function AdminOrdersPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</p>
+                <p className="text-sm font-bold text-green-600">{formatCurrency(totalRevenue)}</p>
                 <p className="text-xs text-gray-500">Dari semua pesanan</p>
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function AdminOrdersPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">{pendingOrders}</p>
+                <p className="text-sm font-bold text-yellow-600">{pendingOrders}</p>
                 <p className="text-xs text-gray-500">Menunggu pembayaran</p>
               </div>
             </div>
@@ -296,7 +296,7 @@ export default function AdminOrdersPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Selesai</p>
-                <p className="text-2xl font-bold text-purple-600">{completedOrders}</p>
+                <p className="text-sm font-bold text-purple-600">{completedOrders}</p>
                 <p className="text-xs text-gray-500">Pesanan selesai</p>
               </div>
             </div>

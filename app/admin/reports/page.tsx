@@ -53,7 +53,6 @@ interface FinancialData {
   profitMargin: number
 }
 
-type PaymentRowSlim = Pick<Database['public']['Tables']['payments']['Row'], 'amount' | 'status' | 'transfer_date'>
 
 export default function AdminReports() {
   const [activeTab, setActiveTab] = useState<'sales' | 'customers' | 'financial'>('sales')
@@ -136,7 +135,7 @@ export default function AdminReports() {
         const orders = (ordersRes.data ?? []) as OrderRow[]
         const payments = (paymentsRes.data ?? []) as PaymentRow[]
 
-        // SalesData per day
+        // SalesData per day - Fixed to use completed orders only
         const daysSpan: string[] = []
         const cursor = new Date(startDate)
         while (cursor <= endDate) {
@@ -144,9 +143,12 @@ export default function AdminReports() {
           cursor.setDate(cursor.getDate() + 1)
         }
         const dailySales: SalesData[] = daysSpan.map((d) => {
-          const revenue = payments
-            .filter(p => p.transfer_date.slice(0,10) === d)
-            .reduce((sum, p) => sum + Number(p.amount), 0)
+          // Use completed orders for revenue calculation
+          const dayCompletedOrders = orders.filter(o => 
+            o.created_at.slice(0,10) === d && o.status === 'completed'
+          )
+          const revenue = dayCompletedOrders.reduce((sum, o) => sum + Number(o.total_amount), 0)
+          
           const dayOrders = orders.filter(o => o.created_at.slice(0,10) === d)
           const customersCount = new Set(dayOrders.map(o => o.user_id)).size
           return { date: d, revenue, orders: dayOrders.length, customers: customersCount }
@@ -196,20 +198,15 @@ export default function AdminReports() {
           .slice(0, 5)
         setProductData(topProducts)
 
-        // Top customers
-        const byUser = new Map<string, { orders: OrderRow[], payments: PaymentRow[] }>()
+        // Top customers - Fixed to use completed orders only
+        const byUser = new Map<string, { orders: OrderRow[], completedOrders: OrderRow[] }>()
         orders.forEach(o => {
-          const bucket = byUser.get(o.user_id) ?? { orders: [], payments: [] }
+          const bucket = byUser.get(o.user_id) ?? { orders: [], completedOrders: [] }
           bucket.orders.push(o)
+          if (o.status === 'completed') {
+            bucket.completedOrders.push(o)
+          }
           byUser.set(o.user_id, bucket)
-        })
-        payments.forEach(p => {
-          // map payment to user via order_id
-          const order = orders.find(o => o.id === p.order_id)
-          if (!order) return
-          const bucket = byUser.get(order.user_id) ?? { orders: [], payments: [] }
-          bucket.payments.push(p)
-          byUser.set(order.user_id, bucket)
         })
         const userIds = Array.from(byUser.keys())
         const namesMap = new Map<string, { name: string, created_at: string }>()
@@ -225,7 +222,8 @@ export default function AdminReports() {
         const customersComputed: CustomerData[] = Array.from(byUser.entries()).map(([uid, data]) => {
           const name = namesMap.get(uid)?.name ?? uid
           const ordersCount = data.orders.length
-          const totalSpent = data.payments.reduce((sum, p) => sum + Number(p.amount), 0)
+          // Use completed orders for total spent calculation
+          const totalSpent = data.completedOrders.reduce((sum, o) => sum + Number(o.total_amount), 0)
           const lastOrder = data.orders
             .sort((orderA, orderB) => orderB.created_at.localeCompare(orderA.created_at))[0]?.created_at ?? ''
           const segment: CustomerData['segment'] = ordersCount > 10 ? 'vip' : ordersCount > 3 ? 'regular' : 'new'
@@ -248,15 +246,14 @@ export default function AdminReports() {
         const monthLabels = months.map(m => m.label)
         const monthlyRevenue: number[] = []
         for (const m of months) {
-          const { data, error } = await supabase
-            .from('payments')
-            .select('amount, status, transfer_date')
-            .eq('status', 'verified')
-            .gte('transfer_date', m.start.toISOString())
-            .lte('transfer_date', new Date(m.end.getFullYear(), m.end.getMonth(), m.end.getDate(), 23, 59, 59).toISOString())
-          if (error) throw new Error(error.message)
-          const rows = (data ?? []) as PaymentRowSlim[]
-          const sum = rows.reduce((s, p) => s + Number(p.amount), 0)
+          // Use completed orders for revenue calculation instead of payments
+          const completedOrdersInMonth = orders.filter(o => {
+            const orderDate = new Date(o.created_at)
+            return o.status === 'completed' && 
+                   orderDate >= m.start && 
+                   orderDate <= new Date(m.end.getFullYear(), m.end.getMonth(), m.end.getDate(), 23, 59, 59)
+          })
+          const sum = completedOrdersInMonth.reduce((s, o) => s + Number(o.total_amount), 0)
           monthlyRevenue.push(sum)
         }
         const financial: FinancialData[] = monthLabels.map((label, idx) => {
@@ -451,7 +448,7 @@ export default function AdminReports() {
         )}
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 p-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
@@ -459,7 +456,7 @@ export default function AdminReports() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+                <p className="text-sm font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
                 <div className="flex items-center mt-1">
                   <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600 font-medium">+{revenueGrowth}%</span>
@@ -475,7 +472,7 @@ export default function AdminReports() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
+                <p className="text-sm font-bold text-gray-900">{totalOrders}</p>
                 <div className="flex items-center mt-1">
                   <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600 font-medium">+{ordersGrowth}%</span>
@@ -491,7 +488,7 @@ export default function AdminReports() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Total Customers</p>
-                <p className="text-2xl font-bold text-gray-900">{totalCustomers}</p>
+                <p className="text-sm font-bold text-gray-900">{totalCustomers}</p>
                 <div className="flex items-center mt-1">
                   <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600 font-medium">+{customersGrowth}%</span>
@@ -507,7 +504,7 @@ export default function AdminReports() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">AOV</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(averageOrderValue)}</p>
+                <p className="text-sm font-bold text-gray-900">{formatCurrency(averageOrderValue)}</p>
                 <p className="text-xs text-gray-500 mt-1">Average Order Value</p>
               </div>
             </div>
@@ -520,7 +517,7 @@ export default function AdminReports() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Profit Margin</p>
-                <p className="text-2xl font-bold text-emerald-600">{profitMargin}%</p>
+                <p className="text-sm font-bold text-emerald-600">{profitMargin}%</p>
                 <div className="flex items-center mt-1">
                   <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600 font-medium">+{profitGrowth}%</span>
@@ -542,9 +539,9 @@ export default function AdminReports() {
             </div>
           </div>
           
-          <div className="flex flex-col lg:flex-row gap-6">
-            <div className="flex-1 flex flex-col sm:flex-row gap-4">
-              <div className="sm:w-48">
+          <div className="flex flex-col xl:flex-row gap-6">
+            <div className="flex-1 flex flex-col lg:flex-row gap-4">
+              <div className="lg:w-48">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Periode</label>
                 <select
                   value={periodFilter}
@@ -558,25 +555,25 @@ export default function AdminReports() {
                   <option value="365">1 Tahun Terakhir</option>
                 </select>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div>
+              <div className="flex flex-col lg:flex-row gap-2">
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
                   <Input
                     type="date"
                     placeholder="Dari"
                     value={dateRange.start}
                     onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                    className="w-full sm:w-40"
+                    className="w-full"
                   />
                 </div>
-                <div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
                   <Input
                     type="date"
                     placeholder="Sampai"
                     value={dateRange.end}
                     onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                    className="w-full sm:w-40"
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -693,20 +690,24 @@ export default function AdminReports() {
                   <p className="text-sm text-gray-600">Grafik penjualan harian untuk {periodFilter} hari terakhir</p>
                 </div>
               </div>
-              <div className="h-64 overflow-hidden" style={{ touchAction: 'pan-y' }}>
-                <div className="w-full flex items-end justify-between gap-1 sm:gap-2">
+              <div className="h-64 overflow-x-auto">
+                <div className="min-w-[600px] flex items-end justify-between gap-1 sm:gap-2">
                   {salesData.map((data, index) => {
                     const maxRevenue = Math.max(...salesData.map(d => d.revenue))
                     const barBaseHeight = compact ? 140 : 200
-                    const height = (data.revenue / maxRevenue) * barBaseHeight
+                    const height = maxRevenue > 0 ? (data.revenue / maxRevenue) * barBaseHeight : 0
                     return (
-                      <div key={index} className="flex flex-col items-center flex-1">
+                      <div key={index} className="flex flex-col items-center flex-1 min-w-[40px]">
                         <div
                           className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t-lg transition-all duration-300 hover:from-blue-600 hover:to-blue-400 hover:shadow-lg"
                           style={{ height: `${height}px` }}
+                          title={`${formatDate(data.date)}: ${formatCurrency(data.revenue)}`}
                         ></div>
-                        <div className="text-[10px] sm:text-xs text-gray-500 mt-2 transform -rotate-45 origin-left">
+                        <div className="text-[10px] sm:text-xs text-gray-500 mt-2 transform -rotate-45 origin-left whitespace-nowrap">
                           {formatDate(data.date)}
+                        </div>
+                        <div className="text-[9px] text-gray-400 mt-1">
+                          {formatCurrency(data.revenue)}
                         </div>
                       </div>
                     )
@@ -774,18 +775,19 @@ export default function AdminReports() {
                 </div>
               </div>
               <div className="h-64 overflow-x-auto">
-                <div className="min-w-[640px] flex items-end justify-between gap-2">
+                <div className="min-w-[600px] flex items-end justify-between gap-2">
                   {(monthlyCustomers.length > 0 ? monthlyCustomers.map(mc => mc.count) : [0]).map((count, index) => {
                     const maxCount = Math.max(...(monthlyCustomers.length > 0 ? monthlyCustomers.map(mc => mc.count) : [1]))
                     const barBaseHeight = compact ? 140 : 200
-                    const height = (count / maxCount) * barBaseHeight
+                    const height = maxCount > 0 ? (count / maxCount) * barBaseHeight : 0
                     return (
-                      <div key={index} className="flex flex-col items-center flex-1">
+                      <div key={index} className="flex flex-col items-center flex-1 min-w-[60px]">
                         <div
                           className="w-full bg-gradient-to-t from-purple-500 to-purple-300 rounded-t-lg transition-all duration-300 hover:from-purple-600 hover:to-purple-400 hover:shadow-lg"
                           style={{ height: `${height}px` }}
+                          title={`${monthlyCustomers[index]?.month ?? ''}: ${count} pelanggan`}
                         ></div>
-                        <div className="text-xs text-gray-500 mt-2">{monthlyCustomers[index]?.month ?? ''}</div>
+                        <div className="text-xs text-gray-500 mt-2 whitespace-nowrap">{monthlyCustomers[index]?.month ?? ''}</div>
                         <div className="text-xs font-semibold text-gray-700">{count}</div>
                       </div>
                     )
@@ -885,25 +887,28 @@ export default function AdminReports() {
                 </div>
               </div>
               <div className="h-64 overflow-x-auto">
-                <div className="min-w-[640px] flex items-end justify-between gap-2">
+                <div className="min-w-[600px] flex items-end justify-between gap-2">
                   {financialData.map((data, index) => {
                     const maxValue = Math.max(...financialData.map(d => Math.max(d.revenue, d.costs)))
                     const barBaseHeight = compact ? 140 : 200
-                    const revenueHeight = (data.revenue / maxValue) * barBaseHeight
-                    const costHeight = (data.costs / maxValue) * barBaseHeight
+                    const revenueHeight = maxValue > 0 ? (data.revenue / maxValue) * barBaseHeight : 0
+                    const costHeight = maxValue > 0 ? (data.costs / maxValue) * barBaseHeight : 0
                     return (
-                      <div key={index} className="flex flex-col items-center flex-1 space-y-1">
+                      <div key={index} className="flex flex-col items-center flex-1 min-w-[60px]">
                         <div className="flex flex-col space-y-1 w-full">
                           <div
                             className="w-full bg-gradient-to-t from-green-500 to-green-300 rounded-t-lg transition-all duration-300 hover:from-green-600 hover:to-green-400 hover:shadow-lg"
                             style={{ height: `${revenueHeight}px` }}
+                            title={`Revenue: ${formatCurrency(data.revenue)}`}
                           ></div>
                           <div
                             className="w-full bg-gradient-to-t from-red-500 to-red-300 rounded-b-lg transition-all duration-300 hover:from-red-600 hover:to-red-400 hover:shadow-lg"
                             style={{ height: `${costHeight}px` }}
+                            title={`Costs: ${formatCurrency(data.costs)}`}
                           ></div>
                         </div>
-                        <div className="text-xs text-gray-500 mt-2">{data.month}</div>
+                        <div className="text-xs text-gray-500 mt-2 whitespace-nowrap">{data.month}</div>
+                        <div className="text-xs font-semibold text-gray-700">{formatCurrency(data.profit)}</div>
                       </div>
                     )
                   })}

@@ -23,9 +23,10 @@ Content Security Policy (CSP) adalah mekanisme keamanan yang membantu mencegah s
 - **Default**: Hanya izinkan sumber daya dari domain yang sama
 - **Tujuan**: Baseline keamanan untuk semua sumber daya
 
-### 2. `script-src 'self' 'unsafe-inline' https:`
-- **Scripts**: Izinkan script dari domain sendiri, inline scripts, dan semua HTTPS
-- **Tujuan**: Mendukung Next.js dan analytics scripts
+### 2. `script-src 'self' 'unsafe-inline' 'unsafe-eval' https:`
+- **Scripts**: Izinkan script dari domain sendiri, inline scripts, eval(), dan semua HTTPS
+- **Tujuan**: Mendukung Next.js, analytics scripts, dan WebAssembly (WASM)
+- **unsafe-eval**: Diperlukan untuk WebAssembly compilation dan beberapa library modern
 
 ### 3. `style-src 'self' 'unsafe-inline' https:`
 - **Styles**: Izinkan CSS dari domain sendiri, inline styles, dan semua HTTPS
@@ -75,6 +76,44 @@ Refused to connect to 'https://analytics.ahrefs.com/api/event' because it violat
 
 ### Solusi:
 Menambahkan domain analytics ke `connect-src` directive:
+- `https://analytics.ahrefs.com`
+- `https://www.google-analytics.com`
+- `https://analytics.google.com`
+- `https://www.googletagmanager.com`
+- `https://connect.facebook.net`
+- `https://www.facebook.com`
+- `https://stats.g.doubleclick.net`
+
+## 🔧 Issues yang Diperbaiki
+
+### 1. WebAssembly Error (2024-12-19)
+**Error**: 
+```
+CompileError: WebAssembly.instantiate(): Refused to compile or instantiate WebAssembly module because 'unsafe-eval' is not an allowed source of script
+```
+
+**Solusi**: 
+- Menambahkan `'unsafe-eval'` ke `script-src` directive
+- Diperlukan untuk WebAssembly compilation dan library modern
+- Memungkinkan Next.js Turbopack dan WASM modules berfungsi
+
+**Konfigurasi**:
+```typescript
+script-src 'self' 'unsafe-inline' 'unsafe-eval' https:
+```
+
+### 2. Analytics Connection Error (2024-12-19)
+**Error**: 
+```
+Refused to connect to 'https://analytics.ahrefs.com/api/event' because it violates CSP directive
+```
+
+**Solusi**: 
+- Menambahkan analytics domains ke `connect-src` directive
+- Mendukung Ahrefs, Google Analytics, Facebook Pixel
+- Memungkinkan analytics tracking berfungsi
+
+**Domains yang Ditambahkan**:
 - `https://analytics.ahrefs.com`
 - `https://www.google-analytics.com`
 - `https://analytics.google.com`

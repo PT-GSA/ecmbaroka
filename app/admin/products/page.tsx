@@ -231,7 +231,7 @@ export default function AdminProductsPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Total Produk</p>
-                <p className="text-2xl font-bold text-gray-900">{totalProducts}</p>
+                <p className="text-sm font-bold text-gray-900">{totalProducts}</p>
                 <p className="text-xs text-gray-500">Semua produk</p>
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function AdminProductsPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Produk Aktif</p>
-                <p className="text-2xl font-bold text-green-600">{activeProducts}</p>
+                <p className="text-sm font-bold text-green-600">{activeProducts}</p>
                 <p className="text-xs text-gray-500">Tersedia untuk dijual</p>
               </div>
             </div>
@@ -257,7 +257,7 @@ export default function AdminProductsPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Total Nilai</p>
-                <p className="text-2xl font-bold text-purple-600">{formatCurrency(totalValue)}</p>
+                <p className="text-sm font-bold text-purple-600">{formatCurrency(totalValue)}</p>
                 <p className="text-xs text-gray-500">Nilai inventori</p>
               </div>
             </div>
@@ -270,7 +270,7 @@ export default function AdminProductsPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Stok Rendah</p>
-                <p className="text-2xl font-bold text-yellow-600">{lowStockProducts}</p>
+                <p className="text-sm font-bold text-yellow-600">{lowStockProducts}</p>
                 <p className="text-xs text-gray-500">Perlu restock</p>
               </div>
             </div>

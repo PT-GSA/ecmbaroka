@@ -13,7 +13,8 @@ import {
   XCircle,
   Clock,
   DollarSign,
-  TrendingUp
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -65,6 +66,11 @@ export default function AdminPayments() {
     const channel = supabase
       .channel('admin-payments-list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        console.log('Payments table changed, refreshing...')
+        fetchPayments()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        console.log('Orders table changed, refreshing payments...')
         fetchPayments()
       })
       .subscribe()
@@ -177,6 +183,16 @@ export default function AdminPayments() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchPayments}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
                 <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 text-sm font-medium">
                   <CreditCard className="w-4 h-4 mr-2" />
                   Admin Panel
@@ -195,7 +211,7 @@ export default function AdminPayments() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Total Pembayaran</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalAmount)}</p>
+                <p className="text-sm font-bold text-gray-900">{formatCurrency(totalAmount)}</p>
                 <p className="text-xs text-gray-500">Semua transaksi</p>
               </div>
             </div>
@@ -208,7 +224,7 @@ export default function AdminPayments() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Pembayaran Terverifikasi</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(verifiedAmount)}</p>
+                <p className="text-sm font-bold text-green-600">{formatCurrency(verifiedAmount)}</p>
                 <p className="text-xs text-gray-500">Transaksi berhasil</p>
               </div>
             </div>
@@ -221,7 +237,7 @@ export default function AdminPayments() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
+                <p className="text-sm font-bold text-yellow-600">{pendingCount}</p>
                 <p className="text-xs text-gray-500">Menunggu konfirmasi</p>
               </div>
             </div>
@@ -234,8 +250,8 @@ export default function AdminPayments() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">Success Rate</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {payments.length > 0 && totalAmount > 0 ? Math.round((verifiedAmount / totalAmount) * 100) : 0}%
+                <p className="text-sm font-bold text-purple-600">
+                  {payments.length > 0 ? Math.round((payments.filter(p => p.status === 'verified').length / payments.length) * 100) : 0}%
                 </p>
                 <p className="text-xs text-gray-500">Tingkat keberhasilan</p>
               </div>
@@ -372,27 +388,50 @@ export default function AdminPayments() {
                                       .update({ status: 'verified' })
                                       .eq('id', payment.id)
                                     if (!error) {
+                                      console.log('Payment verified successfully')
                                       // also set order status to verified
-                                      await supabase
+                                      const orderUpdate = await supabase
                                         .from('orders')
                                         .update({ status: 'verified' })
                                         .eq('id', payment.order_id)
+                                      
+                                      if (orderUpdate.error) {
+                                        console.error('Failed to update order status:', orderUpdate.error)
+                                      } else {
+                                        console.log('Order status updated to verified')
+                                      }
+                                      
                                       // trigger commission attribution (silent)
                                       try {
-                                        await fetch(`/api/admin/orders/${payment.order_id}/commission`, {
+                                        const commissionRes = await fetch(`/api/admin/orders/${payment.order_id}/commission`, {
                                           method: 'POST',
                                           headers: { 'Content-Type': 'application/json' }
                                         })
-                                      } catch {}
+                                        if (!commissionRes.ok) {
+                                          console.error('Commission attribution failed')
+                                        }
+                                      } catch (err) {
+                                        console.error('Commission attribution error:', err)
+                                      }
+                                      
                                       // send notification
                                       try {
-                                        await fetch('/api/notifications', {
+                                        const notificationRes = await fetch('/api/notifications', {
                                           method: 'POST',
                                           headers: { 'Content-Type': 'application/json' },
                                           body: JSON.stringify({ orderId: payment.order_id, status: 'verified' })
                                         })
-                                      } catch {}
-                                      fetchPayments()
+                                        if (!notificationRes.ok) {
+                                          console.error('Notification failed')
+                                        }
+                                      } catch (err) {
+                                        console.error('Notification error:', err)
+                                      }
+                                      
+                                      // Refresh data
+                                      await fetchPayments()
+                                    } else {
+                                      console.error('Failed to verify payment:', error)
                                     }
                                   } finally {
                                     setLoading(false)
@@ -414,14 +453,24 @@ export default function AdminPayments() {
                                       .update({ status: 'rejected' })
                                       .eq('id', payment.id)
                                     if (!error) {
+                                      console.log('Payment rejected successfully')
+                                      // send notification
                                       try {
-                                        await fetch('/api/notifications', {
+                                        const notificationRes = await fetch('/api/notifications', {
                                           method: 'POST',
                                           headers: { 'Content-Type': 'application/json' },
                                           body: JSON.stringify({ orderId: payment.order_id, status: 'rejected' })
                                         })
-                                      } catch {}
-                                      fetchPayments()
+                                        if (!notificationRes.ok) {
+                                          console.error('Notification failed')
+                                        }
+                                      } catch (err) {
+                                        console.error('Notification error:', err)
+                                      }
+                                      // Refresh data
+                                      await fetchPayments()
+                                    } else {
+                                      console.error('Failed to reject payment:', error)
                                     }
                                   } finally {
                                     setLoading(false)

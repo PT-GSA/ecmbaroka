@@ -48,10 +48,13 @@ export async function GET(_req: NextRequest) {
     const customersRes = await service.from('user_profiles').select('id', { count: 'exact' }).eq('role', 'customer').range(0, 0)
     const totalCustomers = customersRes.count ?? 0
 
-    // Revenue
-    const paymentsRes = await service.from('payments').select('amount, status').eq('status', 'verified')
-    const payments = (paymentsRes.data ?? []) as PaymentRowSlim[]
-    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0)
+    // Revenue - Calculate from completed orders only
+    const completedOrdersForRevenueRes = await service
+      .from('orders')
+      .select('total_amount')
+      .eq('status', 'completed')
+    const completedOrdersForRevenue = (completedOrdersForRevenueRes.data ?? []) as Pick<Database['public']['Tables']['orders']['Row'], 'total_amount'>[]
+    const totalRevenue = completedOrdersForRevenue.reduce((sum, order) => sum + Number(order.total_amount), 0)
 
     // Recent orders
     const recentRes = await service
